@@ -47,10 +47,14 @@ func TestGetWorkItem(t *testing.T) {
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
+	payload.Data.Attributes[workitem.SystemDescription] = "Test WI description"
+	payload.Data.Attributes[workitem.SystemDescriptionMarkup] = workitem.SystemMarkupPlainText
 
 	_, result := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
 
 	assert.NotNil(t, result.Data.Attributes[workitem.SystemCreatedAt])
+	assert.NotNil(t, result.Data.Attributes[workitem.SystemDescription])
+	assert.NotNil(t, result.Data.Attributes[workitem.SystemDescriptionMarkup])
 	_, wi := test.ShowWorkitemOK(t, nil, nil, controller, *result.Data.ID)
 
 	if wi == nil {
@@ -66,6 +70,8 @@ func TestGetWorkItem(t *testing.T) {
 		t.Errorf("Creator should be %s, but it is %s", account.TestIdentity.ID.String(), *wi.Data.Relationships.Creator.Data.ID)
 	}
 	wi.Data.Attributes[workitem.SystemTitle] = "Updated Test WI"
+	wi.Data.Attributes[workitem.SystemDescription] = "= Updated Test WI description"
+	wi.Data.Attributes[workitem.SystemDescriptionMarkup] = workitem.SystemMarkupAsciidoc
 
 	payload2 := minimumRequiredUpdatePayload()
 	payload2.Data.ID = wi.Data.ID
@@ -80,8 +86,14 @@ func TestGetWorkItem(t *testing.T) {
 	if *updated.Data.ID != *result.Data.ID {
 		t.Errorf("id has changed from %s to %s", *result.Data.ID, *updated.Data.ID)
 	}
-	if updated.Data.Attributes[workitem.SystemTitle] != "Updated Test WI" {
-		t.Errorf("expected title %s, but got %s", "Updated Test WI", updated.Data.Attributes[workitem.SystemTitle])
+	if updated.Data.Attributes[workitem.SystemTitle] != wi.Data.Attributes[workitem.SystemTitle] {
+		t.Errorf("expected title %s, but got %s", wi.Data.Attributes[workitem.SystemTitle], updated.Data.Attributes[workitem.SystemTitle])
+	}
+	if updated.Data.Attributes[workitem.SystemDescription] != wi.Data.Attributes[workitem.SystemDescription] {
+		t.Errorf("expected description %s, but got %s", wi.Data.Attributes[workitem.SystemDescription], updated.Data.Attributes[workitem.SystemDescription])
+	}
+	if updated.Data.Attributes[workitem.SystemDescriptionMarkup] != wi.Data.Attributes[workitem.SystemDescriptionMarkup] {
+		t.Errorf("expected title %s, but got %s", wi.Data.Attributes[workitem.SystemDescriptionMarkup], updated.Data.Attributes[workitem.SystemDescriptionMarkup])
 	}
 
 	test.DeleteWorkitemOK(t, nil, nil, controller, *result.Data.ID)
@@ -736,7 +748,8 @@ func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
 	s.minimumPayload.Data.Attributes["version"] = updatedWI.Data.Attributes["version"]
 }
 
-func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItem() {
+// TestWI2SuccessCreateWorkItemWithDescription verifies that the `workitem.SystemDescription` attribute is not set, as well as its pair workitem.SystemDescriptionMarkup when the work item description is not provided
+func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithoutDescription() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
@@ -754,6 +767,39 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItem() {
 	assert.NotNil(s.T(), wi.Data.ID)
 	assert.NotNil(s.T(), wi.Data.Type)
 	assert.NotNil(s.T(), wi.Data.Attributes)
+	assert.Equal(s.T(), c.Data.Attributes[workitem.SystemTitle], wi.Data.Attributes[workitem.SystemTitle])
+	assert.Nil(s.T(), wi.Data.Attributes[workitem.SystemDescription])
+	assert.Nil(s.T(), wi.Data.Attributes[workitem.SystemDescriptionMarkup])
+	assert.NotNil(s.T(), wi.Data.Relationships.BaseType.Data.ID)
+	assert.NotNil(s.T(), wi.Data.Relationships.Comments.Links.Self)
+	assert.NotNil(s.T(), wi.Data.Relationships.Creator.Data.ID)
+	assert.NotNil(s.T(), wi.Data.Links)
+	assert.NotNil(s.T(), wi.Data.Links.Self)
+}
+
+// TestWI2SuccessCreateWorkItemWithDescription verifies that the `workitem.SystemDescription` attribute is set, as well as its pair workitem.SystemDescriptionMarkup when the work item description is provided
+func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescription() {
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Attributes[workitem.SystemDescription] = "Description"
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   "system.bug",
+			},
+		},
+	}
+
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	assert.NotNil(s.T(), wi.Data)
+	assert.NotNil(s.T(), wi.Data.ID)
+	assert.NotNil(s.T(), wi.Data.Type)
+	assert.NotNil(s.T(), wi.Data.Attributes)
+	assert.Equal(s.T(), c.Data.Attributes[workitem.SystemTitle], wi.Data.Attributes[workitem.SystemTitle])
+	assert.Equal(s.T(), c.Data.Attributes[workitem.SystemDescription], wi.Data.Attributes[workitem.SystemDescription])
+	assert.Equal(s.T(), workitem.SystemMarkupAsciidoc, wi.Data.Attributes[workitem.SystemDescriptionMarkup])
 	assert.NotNil(s.T(), wi.Data.Relationships.BaseType.Data.ID)
 	assert.NotNil(s.T(), wi.Data.Relationships.Comments.Links.Self)
 	assert.NotNil(s.T(), wi.Data.Relationships.Creator.Data.ID)

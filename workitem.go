@@ -158,7 +158,6 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	wi := app.WorkItem{
 		Fields: make(map[string]interface{}),
 	}
-
 	return application.Transactional(c.db, func(appl application.Application) error {
 		ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
 
@@ -307,6 +306,11 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2
 	}
 	for key, val := range source.Attributes {
 		target.Fields[key] = val
+		if key == workitem.SystemDescription && val != nil {
+			// let's assume that the markup supported on the UI is 'Asciidoc'
+			target.Fields[workitem.SystemDescriptionMarkup] = workitem.SystemMarkupAsciidoc
+		}
+
 	}
 	return nil
 }

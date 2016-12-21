@@ -14,14 +14,15 @@ const (
 	// pathSep specifies the symbol used to concatenate WIT names to form a so called "path"
 	pathSep = "/"
 
-	SystemRemoteItemID = "system.remote_item_id"
-	SystemTitle        = "system.title"
-	SystemDescription  = "system.description"
-	SystemState        = "system.state"
-	SystemAssignees    = "system.assignees"
-	SystemCreator      = "system.creator"
-	SystemCreatedAt    = "system.created_at"
-	SystemIteration    = "system.iteration"
+	SystemRemoteItemID      = "system.remote_item_id"
+	SystemTitle             = "system.title"
+	SystemDescription       = "system.description"
+	SystemDescriptionMarkup = "system.description.markup"
+	SystemState             = "system.state"
+	SystemAssignees         = "system.assignees"
+	SystemCreator           = "system.creator"
+	SystemCreatedAt         = "system.created_at"
+	SystemIteration         = "system.iteration"
 
 	// base item type with common fields for planner item types like userstory, experience, bug, feature, etc.
 	SystemPlannerItem = "system.planneritem"
@@ -38,6 +39,12 @@ const (
 	SystemStateInProgress = "in progress"
 	SystemStateResolved   = "resolved"
 	SystemStateClosed     = "closed"
+
+	SystemMarkupPlainText = "PlainText"
+	SystemMarkupMarkdown  = "Markdown"
+	SystemMarkupJiraWiki  = "JiraWiki"
+	SystemMarkupAsciidoc  = "Asciidoc"
+	SystemMarkupHTML      = "HTML"
 )
 
 // WorkItemType represents a work item type as it is stored in the db

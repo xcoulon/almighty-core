@@ -332,12 +332,12 @@ $(eval COMBINED_OUT_FILE := $(3))
 $(eval ERRORS_FILE := $(4))
 $(eval ENV_VAR := $(5))
 $(eval ALL_PKGS_COMMA_SEPARATED := $(6))
-
+@printf "\033[36mTesting $(2)\033[0m\r\n"
 @mkdir -p $(COV_DIR)/$(PACKAGE_NAME);
 $(eval COV_OUT_FILE := $(COV_DIR)/$(PACKAGE_NAME)/coverage.$(TEST_NAME).mode-$(COVERAGE_MODE))
 @$(ENV_VAR) ALMIGHTY_POSTGRES_HOST=$(ALMIGHTY_POSTGRES_HOST) \
 	go test $(PACKAGE_NAME) \
-		-v \
+		#-v \
 		-coverprofile $(COV_OUT_FILE) \
 		-coverpkg $(ALL_PKGS_COMMA_SEPARATED) \
 		-covermode=$(COVERAGE_MODE) \
@@ -432,6 +432,6 @@ clean-coverage-unit:
 
 CLEAN_TARGETS += clean-coverage-integration
 .PHONY: clean-coverage-integration
-## Removes integreation test coverage file
+## Removes integration test coverage file
 clean-coverage-integration:
 	-@rm -f $(COV_PATH_INTEGRATION)
