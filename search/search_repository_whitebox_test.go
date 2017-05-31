@@ -11,9 +11,9 @@ import (
 
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
+	"github.com/almighty/almighty-core/markup"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
-	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
@@ -73,7 +73,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			wi: workitem.WorkItem{
 				Fields: map[string]interface{}{
 					workitem.SystemTitle:       "test sbose title '12345678asdfgh'",
-					workitem.SystemDescription: rendering.NewMarkupContentFromLegacy(`"description" for search test`),
+					workitem.SystemDescription: markup.NewMarkupContentFromLegacy(`"description" for search test`),
 					workitem.SystemCreator:     "sbose78",
 					workitem.SystemAssignees:   []string{"pranav"},
 					workitem.SystemState:       "closed",
@@ -86,7 +86,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			wi: workitem.WorkItem{
 				Fields: map[string]interface{}{
 					workitem.SystemTitle:       "add new error types in models/errors.go'",
-					workitem.SystemDescription: rendering.NewMarkupContentFromLegacy(`Make sure remoteworkitem can access..`),
+					workitem.SystemDescription: markup.NewMarkupContentFromLegacy(`Make sure remoteworkitem can access..`),
 					workitem.SystemCreator:     "sbose78",
 					workitem.SystemAssignees:   []string{"pranav"},
 					workitem.SystemState:       "closed",
@@ -99,7 +99,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			wi: workitem.WorkItem{
 				Fields: map[string]interface{}{
 					workitem.SystemTitle:       "test sbose title '12345678asdfgh'",
-					workitem.SystemDescription: rendering.NewMarkupContentFromLegacy(`"description" for search test`),
+					workitem.SystemDescription: markup.NewMarkupContentFromLegacy(`"description" for search test`),
 					workitem.SystemCreator:     "sbose78",
 					workitem.SystemAssignees:   []string{"pranav"},
 					workitem.SystemState:       "closed",
@@ -224,7 +224,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 					}
 					workItemDescription := ""
 					if workItemValue.Fields[workitem.SystemDescription] != nil {
-						descriptionField := workItemValue.Fields[workitem.SystemDescription].(rendering.MarkupContent)
+						descriptionField := workItemValue.Fields[workitem.SystemDescription].(markup.MarkupContent)
 						workItemDescription = strings.ToLower(descriptionField.Content)
 					}
 					workItemNumber := 0
@@ -274,7 +274,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 
 		workItem.Fields = map[string]interface{}{
 			workitem.SystemTitle:       "Search Test Sbose",
-			workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("Description"),
+			workitem.SystemDescription: markup.NewMarkupContentFromLegacy("Description"),
 			workitem.SystemCreator:     "sbose78",
 			workitem.SystemAssignees:   []string{"pranav"},
 			workitem.SystemState:       "closed",

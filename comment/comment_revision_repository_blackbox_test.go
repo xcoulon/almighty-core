@@ -8,8 +8,8 @@ import (
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
+	"github.com/almighty/almighty-core/markup"
 	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
 
@@ -64,18 +64,18 @@ func (s *revisionRepositoryBlackBoxTest) TearDownTest() {
 func (s *revisionRepositoryBlackBoxTest) TestStoreCommentRevisions() {
 	// given
 	// create a comment
-	c := newComment("A", "Body", rendering.SystemMarkupMarkdown)
+	c := newComment("A", "Body", markup.SystemMarkupMarkdown)
 	err := s.repository.Create(context.Background(), c, s.testIdentity1.ID)
 	require.Nil(s.T(), err)
 	// modify the comment
 	c.Body = "Updated body"
-	c.Markup = rendering.SystemMarkupPlainText
+	c.Markup = markup.SystemMarkupPlainText
 	err = s.repository.Save(
 		context.Background(), c, s.testIdentity2.ID)
 	require.Nil(s.T(), err)
 	// modify again the comment
 	c.Body = "Updated body2"
-	c.Markup = rendering.SystemMarkupMarkdown
+	c.Markup = markup.SystemMarkupMarkdown
 	err = s.repository.Save(context.Background(), c, s.testIdentity2.ID)
 	require.Nil(s.T(), err)
 	// delete the comment
@@ -93,7 +93,7 @@ func (s *revisionRepositoryBlackBoxTest) TestStoreCommentRevisions() {
 	assert.Equal(s.T(), c.ParentID, revision1.CommentParentID)
 	assert.Equal(s.T(), comment.RevisionTypeCreate, revision1.Type)
 	assert.Equal(s.T(), "Body", *revision1.CommentBody)
-	assert.Equal(s.T(), rendering.SystemMarkupMarkdown, *revision1.CommentMarkup)
+	assert.Equal(s.T(), markup.SystemMarkupMarkdown, *revision1.CommentMarkup)
 	assert.Equal(s.T(), s.testIdentity1.ID, revision1.ModifierIdentity)
 	// revision 2
 	revision2 := commentRevisions[1]
@@ -101,7 +101,7 @@ func (s *revisionRepositoryBlackBoxTest) TestStoreCommentRevisions() {
 	assert.Equal(s.T(), c.ParentID, revision2.CommentParentID)
 	assert.Equal(s.T(), comment.RevisionTypeUpdate, revision2.Type)
 	assert.Equal(s.T(), "Updated body", *revision2.CommentBody)
-	assert.Equal(s.T(), rendering.SystemMarkupPlainText, *revision2.CommentMarkup)
+	assert.Equal(s.T(), markup.SystemMarkupPlainText, *revision2.CommentMarkup)
 	assert.Equal(s.T(), s.testIdentity2.ID, revision2.ModifierIdentity)
 	// revision 3
 	revision3 := commentRevisions[2]
@@ -109,7 +109,7 @@ func (s *revisionRepositoryBlackBoxTest) TestStoreCommentRevisions() {
 	assert.Equal(s.T(), c.ParentID, revision3.CommentParentID)
 	assert.Equal(s.T(), comment.RevisionTypeUpdate, revision3.Type)
 	assert.Equal(s.T(), "Updated body2", *revision3.CommentBody)
-	assert.Equal(s.T(), rendering.SystemMarkupMarkdown, *revision3.CommentMarkup)
+	assert.Equal(s.T(), markup.SystemMarkupMarkdown, *revision3.CommentMarkup)
 	assert.Equal(s.T(), s.testIdentity2.ID, revision3.ModifierIdentity)
 	// revision 4
 	revision4 := commentRevisions[3]

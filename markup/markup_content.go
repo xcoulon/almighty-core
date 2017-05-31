@@ -1,4 +1,4 @@
-package rendering
+package markup
 
 // MarkupContent defines the raw content of a field along with the markup language used to input the content.
 type MarkupContent struct {
@@ -12,6 +12,14 @@ const (
 	// the key for the 'markup' field when the MarkupContent is converted into/from a Map
 	MarkupKey = "markup"
 )
+
+// IsMarkupSupported indicates if the given markup is supported
+func IsMarkupSupported(markup string) bool {
+	if markup == SystemMarkupDefault || markup == SystemMarkupMarkdown {
+		return true
+	}
+	return false
+}
 
 func (markupContent *MarkupContent) ToMap() map[string]interface{} {
 	result := make(map[string]interface{})

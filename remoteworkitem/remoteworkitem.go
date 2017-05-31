@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/almighty/almighty-core/rendering"
+	"github.com/almighty/almighty-core/markup"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -64,7 +64,7 @@ const (
 var RemoteWorkItemKeyMaps = map[string]RemoteWorkItemMap{
 	ProviderGithub: {
 		AttributeMapper{AttributeExpression(GithubTitle), StringConverter{}}:                                                               remoteTitle,
-		AttributeMapper{AttributeExpression(GithubDescription), MarkupConverter{markup: rendering.SystemMarkupMarkdown}}:                   remoteDescription,
+		AttributeMapper{AttributeExpression(GithubDescription), MarkupConverter{markup: markup.SystemMarkupMarkdown}}:                      remoteDescription,
 		AttributeMapper{AttributeExpression(GithubState), GithubStateConverter{}}:                                                          remoteState,
 		AttributeMapper{AttributeExpression(GithubID), StringConverter{}}:                                                                  remoteItemID,
 		AttributeMapper{AttributeExpression(GithubCreatorLogin), StringConverter{}}:                                                        remoteCreatorLogin,
@@ -73,14 +73,14 @@ var RemoteWorkItemKeyMaps = map[string]RemoteWorkItemMap{
 		AttributeMapper{AttributeExpression(GithubAssigneesProfileURL), PatternToListConverter{pattern: GithubAssigneesProfileURLPattern}}: remoteAssigneeProfileURLs,
 	},
 	ProviderJira: {
-		AttributeMapper{AttributeExpression(JiraTitle), StringConverter{}}:                                      remoteTitle,
-		AttributeMapper{AttributeExpression(JiraBody), MarkupConverter{markup: rendering.SystemMarkupJiraWiki}}: remoteDescription,
-		AttributeMapper{AttributeExpression(JiraState), JiraStateConverter{}}:                                   remoteState,
-		AttributeMapper{AttributeExpression(JiraID), StringConverter{}}:                                         remoteItemID,
-		AttributeMapper{AttributeExpression(JiraCreatorLogin), StringConverter{}}:                               remoteCreatorLogin,
-		AttributeMapper{AttributeExpression(JiraCreatorProfileURL), StringConverter{}}:                          remoteCreatorProfileURL,
-		AttributeMapper{AttributeExpression(JiraAssigneeLogin), ListConverter{}}:                                remoteAssigneeLogins,
-		AttributeMapper{AttributeExpression(JiraAssigneeProfileURL), ListConverter{}}:                           remoteAssigneeProfileURLs,
+		AttributeMapper{AttributeExpression(JiraTitle), StringConverter{}}:                                   remoteTitle,
+		AttributeMapper{AttributeExpression(JiraBody), MarkupConverter{markup: markup.SystemMarkupJiraWiki}}: remoteDescription,
+		AttributeMapper{AttributeExpression(JiraState), JiraStateConverter{}}:                                remoteState,
+		AttributeMapper{AttributeExpression(JiraID), StringConverter{}}:                                      remoteItemID,
+		AttributeMapper{AttributeExpression(JiraCreatorLogin), StringConverter{}}:                            remoteCreatorLogin,
+		AttributeMapper{AttributeExpression(JiraCreatorProfileURL), StringConverter{}}:                       remoteCreatorProfileURL,
+		AttributeMapper{AttributeExpression(JiraAssigneeLogin), ListConverter{}}:                             remoteAssigneeLogins,
+		AttributeMapper{AttributeExpression(JiraAssigneeProfileURL), ListConverter{}}:                        remoteAssigneeProfileURLs,
 	},
 }
 
@@ -152,7 +152,7 @@ func (converter MarkupConverter) Convert(value interface{}, item AttributeAccess
 	}
 	switch value.(type) {
 	case string:
-		return rendering.NewMarkupContent(value.(string), converter.markup), nil
+		return markup.NewMarkupContent(value.(string), converter.markup), nil
 	default:
 		return nil, errors.Errorf("Unexpected type of value to convert: %T", value)
 	}

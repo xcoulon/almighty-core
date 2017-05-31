@@ -16,8 +16,9 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/login"
+	"github.com/almighty/almighty-core/markup"
+	"github.com/almighty/almighty-core/markup/rendering"
 	query "github.com/almighty/almighty-core/query/simple"
-	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/space/authz"
 	"github.com/almighty/almighty-core/workitem"
@@ -112,18 +113,18 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 	}
 
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
-	return application.Transactional(c.db, func(tx application.Application) error {
-		workitems, tc, err := tx.WorkItems().List(ctx.Context, ctx.SpaceID, exp, ctx.FilterParentexists, &offset, &limit)
+	return application.Transactional(c.db, func(appl application.Application) error {
+		workitems, tc, err := appl.WorkItems().List(ctx.Context, ctx.SpaceID, exp, ctx.FilterParentexists, &offset, &limit)
 		count := int(tc)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work items"))
 		}
 		return ctx.ConditionalEntities(workitems, c.config.GetCacheControlWorkItems, func() error {
-			hasChildren := workItemIncludeHasChildren(tx, ctx)
+			hasChildren := workItemIncludeHasChildren(appl, ctx)
 			response := app.WorkItemList{
 				Links: &app.PagingLinks{},
 				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-				Data:  ConvertWorkItems(ctx.RequestData, workitems, hasChildren),
+				Data:  ConvertWorkItems(ctx, ctx.RequestData, appl, workitems, hasChildren),
 			}
 			setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(workitems), offset, limit, count, additionalQuery...)
 			addFilterLinks(response.Links, ctx.RequestData)
@@ -191,7 +192,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error updating work item"))
 		}
 		hasChildren := workItemIncludeHasChildren(appl, ctx)
-		wi2 := ConvertWorkItem(ctx.RequestData, *wi, hasChildren)
+		wi2 := ConvertWorkItem(ctx, ctx.RequestData, appl, *wi, hasChildren)
 		resp := &app.WorkItemSingle{
 			Data: wi2,
 			Links: &app.WorkItemLinks{
@@ -239,7 +240,7 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}
 			hasChildren := workItemIncludeHasChildren(appl, ctx)
-			wi2 := ConvertWorkItem(ctx.RequestData, *wi, hasChildren)
+			wi2 := ConvertWorkItem(ctx, ctx.RequestData, appl, *wi, hasChildren)
 			dataArray = append(dataArray, wi2)
 			log.Info(ctx, nil, "Reordered item: %v", wi2)
 		}
@@ -294,7 +295,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
 		hasChildren := workItemIncludeHasChildren(appl, ctx)
-		wi2 := ConvertWorkItem(ctx.RequestData, *wi, hasChildren)
+		wi2 := ConvertWorkItem(ctx, ctx.RequestData, appl, *wi, hasChildren)
 		resp := &app.WorkItemSingle{
 			Data: wi2,
 			Links: &app.WorkItemLinks{
@@ -317,7 +318,7 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", ctx.WiID)))
 		}
 		return ctx.ConditionalEntity(*wi, c.config.GetCacheControlWorkItems, func() error {
-			wi2 := ConvertWorkItem(ctx.RequestData, *wi, comments, hasChildren)
+			wi2 := ConvertWorkItem(ctx, ctx.RequestData, appl, *wi, comments, hasChildren)
 			resp := &app.WorkItemSingle{
 				Data: wi2,
 			}
@@ -470,26 +471,26 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, appl application.Application,
 	for key, val := range source.Attributes {
 		// convert legacy description to markup content
 		if key == workitem.SystemDescription {
-			if m := rendering.NewMarkupContentFromValue(val); m != nil {
+			if m := markup.NewMarkupContentFromValue(val); m != nil {
 				// if no description existed before, set the new one
 				if target.Fields[key] == nil {
 					target.Fields[key] = *m
 				} else {
 					// only update the 'description' field in the existing description
-					existingDescription := target.Fields[key].(rendering.MarkupContent)
+					existingDescription := target.Fields[key].(markup.MarkupContent)
 					existingDescription.Content = (*m).Content
 					target.Fields[key] = existingDescription
 				}
 			}
 		} else if key == workitem.SystemDescriptionMarkup {
-			markup := val.(string)
+			markupValue := val.(string)
 			// if no description existed before, set the markup in a new one
 			if target.Fields[workitem.SystemDescription] == nil {
-				target.Fields[workitem.SystemDescription] = rendering.MarkupContent{Markup: markup}
+				target.Fields[workitem.SystemDescription] = markup.MarkupContent{Markup: markupValue}
 			} else {
 				// only update the 'description' field in the existing description
-				existingDescription := target.Fields[workitem.SystemDescription].(rendering.MarkupContent)
-				existingDescription.Markup = markup
+				existingDescription := target.Fields[workitem.SystemDescription].(markup.MarkupContent)
+				existingDescription.Markup = markupValue
 				target.Fields[workitem.SystemDescription] = existingDescription
 			}
 		} else if key == workitem.SystemCodebase {
@@ -502,9 +503,9 @@ func ConvertJSONAPIToWorkItem(ctx context.Context, appl application.Application,
 			target.Fields[key] = val
 		}
 	}
-	if description, ok := target.Fields[workitem.SystemDescription].(rendering.MarkupContent); ok {
+	if description, ok := target.Fields[workitem.SystemDescription].(markup.MarkupContent); ok {
 		// verify the description markup
-		if !rendering.IsMarkupSupported(description.Markup) {
+		if !markup.IsMarkupSupported(description.Markup) {
 			return errors.NewBadParameterError("data.relationships.attributes[system.description].markup", description.Markup)
 		}
 	}
@@ -528,17 +529,17 @@ type WorkItemConvertFunc func(*goa.RequestData, *workitem.WorkItem, *app.WorkIte
 
 // ConvertWorkItems is responsible for converting given []WorkItem model object into a
 // response resource object by jsonapi.org specifications
-func ConvertWorkItems(request *goa.RequestData, wis []workitem.WorkItem, additional ...WorkItemConvertFunc) []*app.WorkItem {
+func ConvertWorkItems(ctx context.Context, request *goa.RequestData, appl application.Application, wis []workitem.WorkItem, additional ...WorkItemConvertFunc) []*app.WorkItem {
 	ops := []*app.WorkItem{}
 	for _, wi := range wis {
-		ops = append(ops, ConvertWorkItem(request, wi, additional...))
+		ops = append(ops, ConvertWorkItem(ctx, request, appl, wi, additional...))
 	}
 	return ops
 }
 
 // ConvertWorkItem is responsible for converting given WorkItem model object into a
 // response resource object by jsonapi.org specifications
-func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional ...WorkItemConvertFunc) *app.WorkItem {
+func ConvertWorkItem(ctx context.Context, request *goa.RequestData, appl application.Application, wi workitem.WorkItem, additional ...WorkItemConvertFunc) *app.WorkItem {
 	// construct default values from input WI
 	selfURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.SpaceID.String(), wi.ID))
 	sourceLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), wi.Type)+sourceLinkTypesRouteEnd)
@@ -609,13 +610,19 @@ func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional 
 			// 'HTML escape' the title to prevent script injection
 			op.Attributes[name] = html.EscapeString(val.(string))
 		case workitem.SystemDescription:
-			description := rendering.NewMarkupContentFromValue(val)
+			description := markup.NewMarkupContentFromValue(val)
 			if description != nil {
 				op.Attributes[name] = (*description).Content
 				op.Attributes[workitem.SystemDescriptionMarkup] = (*description).Markup
 				// let's include the rendered description while 'HTML escaping' it to prevent script injection
-				op.Attributes[workitem.SystemDescriptionRendered] =
-					rendering.RenderMarkupToHTML(html.EscapeString((*description).Content), (*description).Markup)
+				renderer := rendering.NewMarkupRenderer(appl.WorkItems(), rest.BaseURL(request))
+				result, err := renderer.RenderMarkupToHTML(ctx, wi.SpaceID, html.EscapeString((*description).Content), (*description).Markup)
+				if err != nil {
+					// here we just log the error and return a nil 'rendered' body of the given comment
+					log.Error(ctx, map[string]interface{}{"wi_id": wi.ID}, "Failed to render the work item description in HTML", err.Error())
+				} else {
+					op.Attributes[workitem.SystemDescriptionRendered] = *result
+				}
 			}
 		case workitem.SystemCodebase:
 			if val != nil {
@@ -688,7 +695,7 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 		return ctx.ConditionalEntities(result, c.config.GetCacheControlWorkItems, func() error {
 			hasChildren := workItemIncludeHasChildren(appl, ctx)
 			response := app.WorkItemList{
-				Data: ConvertWorkItems(ctx.RequestData, result, hasChildren),
+				Data: ConvertWorkItems(ctx, ctx.RequestData, appl, result, hasChildren),
 			}
 			return ctx.OK(&response)
 		})

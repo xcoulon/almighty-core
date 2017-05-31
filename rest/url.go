@@ -24,6 +24,19 @@ func AbsoluteURL(req *goa.RequestData, relative string) string {
 	return fmt.Sprintf("%s://%s%s", scheme, req.Host, relative)
 }
 
+// BaseURL returns the given request's Host, taking the optional "X-Forwarded-Proto" header into account
+func BaseURL(req *goa.RequestData) string {
+	scheme := "http"
+	if req.URL != nil && req.URL.Scheme == "https" { // isHTTPS
+		scheme = "https"
+	}
+	xForwardProto := req.Header.Get("X-Forwarded-Proto")
+	if xForwardProto != "" {
+		scheme = xForwardProto
+	}
+	return fmt.Sprintf("%s://%s", scheme, req.Host)
+}
+
 // ReplaceDomainPrefix replaces the last name in the host by a new name. Example: api.service.domain.org -> sso.service.domain.org
 func ReplaceDomainPrefix(host string, replaceBy string) (string, error) {
 	split := strings.SplitN(host, ".", 2)

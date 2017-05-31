@@ -30,8 +30,12 @@ var markupRenderingPayloadDataAttributes = a.Type("MarkupRenderingPayloadDataAtt
 	a.Attribute("markup", d.String, "The markup language associated with the content to render", func() {
 		a.Example("Markdown")
 	})
+	a.Attribute("spaceID", d.UUID, "The ID of the current space", func() {
+		a.Example("abcd1234-1234-5678-cafe-0123456789ab")
+	})
 	a.Required("content")
 	a.Required("markup")
+	a.Required("spaceID")
 })
 
 // MarkupRenderingMediaType is the media type for rendering result

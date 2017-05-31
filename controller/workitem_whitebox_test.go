@@ -12,10 +12,11 @@ import (
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/rendering"
+	"github.com/almighty/almighty-core/markup"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/space"
+	"github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/workitem"
 
 	"github.com/goadesign/goa"
@@ -130,7 +131,7 @@ func TestConvertWorkItemWithDescription(t *testing.T) {
 		Fields:  fields,
 		SpaceID: space.SystemSpace,
 	}
-	wi2 := ConvertWorkItem(requestData, wi)
+	wi2 := ConvertWorkItem(context.Background(), requestData, test.NewMockDB(), wi)
 	assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])
 	assert.Equal(t, "description", wi2.Attributes[workitem.SystemDescription])
 }
@@ -144,7 +145,7 @@ func TestConvertWorkItemWithoutDescription(t *testing.T) {
 		},
 		SpaceID: space.SystemSpace,
 	}
-	wi2 := ConvertWorkItem(requestData, wi)
+	wi2 := ConvertWorkItem(context.Background(), requestData, test.NewMockDB(), wi)
 	assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])
 	assert.Nil(t, wi2.Attributes[workitem.SystemDescription])
 }
@@ -217,7 +218,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithLegacyDescription(
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
 	require.True(t, uuid.Equal(source.Relationships.BaseType.Data.ID, target.Type))
-	expectedDescription := rendering.NewMarkupContentFromLegacy("description")
+	expectedDescription := markup.NewMarkupContentFromLegacy("description")
 	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
 
 }
@@ -228,7 +229,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithDescriptionContent
 	//given
 	attributes := map[string]interface{}{
 		workitem.SystemTitle:       "title",
-		workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("description"),
+		workitem.SystemDescription: markup.NewMarkupContentFromLegacy("description"),
 	}
 	source := prepareWI2(attributes)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
@@ -239,7 +240,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithDescriptionContent
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
 	require.True(t, uuid.Equal(source.Relationships.BaseType.Data.ID, target.Type))
-	expectedDescription := rendering.NewMarkupContentFromLegacy("description")
+	expectedDescription := markup.NewMarkupContentFromLegacy("description")
 	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
 }
 
@@ -249,7 +250,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithDescriptionContent
 	//given
 	attributes := map[string]interface{}{
 		workitem.SystemTitle:       "title",
-		workitem.SystemDescription: rendering.NewMarkupContent("description", rendering.SystemMarkupMarkdown),
+		workitem.SystemDescription: markup.NewMarkupContent("description", markup.SystemMarkupMarkdown),
 	}
 	source := prepareWI2(attributes)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
@@ -260,7 +261,7 @@ func (rest *TestWorkItemREST) TestConvertJSONAPIToWorkItemWithDescriptionContent
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
 	require.True(t, uuid.Equal(source.Relationships.BaseType.Data.ID, target.Type))
-	expectedDescription := rendering.NewMarkupContent("description", rendering.SystemMarkupMarkdown)
+	expectedDescription := markup.NewMarkupContent("description", markup.SystemMarkupMarkdown)
 	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
 }
 

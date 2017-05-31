@@ -17,8 +17,8 @@ import (
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
+	"github.com/almighty/almighty-core/markup"
 	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/search"
@@ -157,7 +157,7 @@ func (s *searchBlackBoxTest) TestSearchWithEmptyValue() {
 
 func (s *searchBlackBoxTest) TestSearchWithDomainPortCombination() {
 	description := "http://localhost:8080/detail/154687364529310 is related issue"
-	expectedDescription := rendering.NewMarkupContentFromLegacy(description)
+	expectedDescription := markup.NewMarkupContentFromLegacy(description)
 	_, err := s.wiRepo.Create(
 		s.ctx,
 		space.SystemSpace,
@@ -181,7 +181,7 @@ func (s *searchBlackBoxTest) TestSearchWithDomainPortCombination() {
 
 func (s *searchBlackBoxTest) TestSearchURLWithoutPort() {
 	description := "This issue is related to http://localhost/detail/876394"
-	expectedDescription := rendering.NewMarkupContentFromLegacy(description)
+	expectedDescription := markup.NewMarkupContentFromLegacy(description)
 	_, err := s.wiRepo.Create(
 		s.ctx,
 		space.SystemSpace,
@@ -206,7 +206,7 @@ func (s *searchBlackBoxTest) TestSearchURLWithoutPort() {
 
 func (s *searchBlackBoxTest) TestUnregisteredURLWithPort() {
 	description := "Related to http://some-other-domain:8080/different-path/154687364529310/ok issue"
-	expectedDescription := rendering.NewMarkupContentFromLegacy(description)
+	expectedDescription := markup.NewMarkupContentFromLegacy(description)
 	_, err := s.wiRepo.Create(
 		s.ctx,
 		space.SystemSpace,
@@ -230,7 +230,7 @@ func (s *searchBlackBoxTest) TestUnregisteredURLWithPort() {
 }
 
 func (s *searchBlackBoxTest) TestUnwantedCharactersRelatedToSearchLogic() {
-	expectedDescription := rendering.NewMarkupContentFromLegacy("Related to http://example-domain:8080/different-path/ok issue")
+	expectedDescription := markup.NewMarkupContentFromLegacy("Related to http://example-domain:8080/different-path/ok issue")
 
 	_, err := s.wiRepo.Create(
 		s.ctx,

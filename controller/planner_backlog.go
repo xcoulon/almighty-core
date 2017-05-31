@@ -53,20 +53,37 @@ func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) erro
 	}
 
 	// Get the list of work items for the following criteria
-	result, count, err := getBacklogItems(ctx.Context, c.db, ctx.SpaceID, exp, &offset, &limit)
+
+	backlogExp, err := generateBacklogExpression(ctx, c.db, ctx.SpaceID, exp)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-	return ctx.ConditionalEntities(result, c.config.GetCacheControlWorkItems, func() error {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("error listing work item backlog", err))
+	} else if backlogExp == nil {
+		count := 0
 		response := app.WorkItemList{
-			Data:  ConvertWorkItems(ctx.RequestData, result),
+			Data:  make([]*app.WorkItem, 0),
 			Links: &app.PagingLinks{},
 			Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
 		}
 		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), count, offset, limit, count)
 		return ctx.OK(&response)
-	})
+	}
 
+	return application.Transactional(c.db, func(appl application.Application) error {
+		// Get the list of work items for the following criteria
+		result, count, err := appl.WorkItems().List(ctx, ctx.SpaceID, backlogExp, nil, &offset, &limit)
+		if err != nil {
+			return errs.Wrap(err, "error listing backlog items")
+		}
+		return ctx.ConditionalEntities(result, c.config.GetCacheControlWorkItems, func() error {
+			response := app.WorkItemList{
+				Data:  ConvertWorkItems(ctx, ctx.RequestData, appl, result),
+				Links: &app.PagingLinks{},
+				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
+			}
+			setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), count, offset, limit, count)
+			return ctx.OK(&response)
+		})
+	})
 }
 
 // generateBacklogExpression creates the expression to query for backlog items
@@ -110,29 +127,6 @@ func generateBacklogExpression(ctx context.Context, db application.DB, spaceID u
 	}
 
 	return exp, nil
-}
-
-func getBacklogItems(ctx context.Context, db application.DB, spaceID uuid.UUID, exp criteria.Expression, offset *int, limit *int) ([]workitem.WorkItem, int, error) {
-	result := []workitem.WorkItem{}
-	count := 0
-
-	backlogExp, err := generateBacklogExpression(ctx, db, spaceID, exp)
-	if err != nil || backlogExp == nil {
-		return result, count, err
-	}
-
-	err = application.Transactional(db, func(appl application.Application) error {
-		// Get the list of work items for the following criteria
-		result, count, err = appl.WorkItems().List(ctx, spaceID, backlogExp, nil, offset, limit)
-		if err != nil {
-			return errs.Wrap(err, "error listing backlog items")
-		}
-		return nil
-	})
-	if err != nil {
-		return result, count, err
-	}
-	return result, count, nil
 }
 
 func countBacklogItems(ctx context.Context, db application.DB, spaceID uuid.UUID) (int, error) {

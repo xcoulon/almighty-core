@@ -1,12 +1,17 @@
 package controller_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	. "github.com/almighty/almighty-core/controller"
-	"github.com/almighty/almighty-core/rendering"
+	"github.com/almighty/almighty-core/gormapplication"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
+	"github.com/almighty/almighty-core/markup"
+	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
@@ -22,23 +27,28 @@ func TestSuiteMarkupRendering(t *testing.T) {
 
 // ========== MarkupRenderingSuite struct that implements SetupSuite, TearDownSuite, SetupTest, TearDownTest ==========
 type MarkupRenderingSuite struct {
-	suite.Suite
+	gormtestsupport.DBTestSuite
+	db         *gormapplication.GormDB
 	controller app.RenderController
-	svc        *goa.Service
+	clean      func()
+
+	svc *goa.Service
 }
 
 func (s *MarkupRenderingSuite) SetupSuite() {
-}
-
-func (s *MarkupRenderingSuite) TearDownSuite() {
+	s.DBTestSuite.SetupSuite()
+	s.DBTestSuite.PopulateDBTestSuite(migration.NewMigrationContext(context.Background()))
 }
 
 func (s *MarkupRenderingSuite) SetupTest() {
+	s.db = gormapplication.NewGormDB(s.DB)
 	s.svc = goa.New("Rendering-service-test")
-	s.controller = NewRenderController(s.svc)
+	s.controller = NewRenderController(s.svc, s.db)
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 }
 
 func (s *MarkupRenderingSuite) TearDownTest() {
+	s.clean()
 }
 
 func (s *MarkupRenderingSuite) TestRenderPlainText() {
@@ -47,7 +57,7 @@ func (s *MarkupRenderingSuite) TestRenderPlainText() {
 		Type: RenderingType,
 		Attributes: &app.MarkupRenderingPayloadDataAttributes{
 			Content: "foo",
-			Markup:  rendering.SystemMarkupPlainText,
+			Markup:  markup.SystemMarkupPlainText,
 		}}}
 	// when
 	_, result := test.RenderRenderOK(s.T(), s.svc.Context, s.svc, s.controller, &payload)
@@ -63,7 +73,7 @@ func (s *MarkupRenderingSuite) TestRenderMarkdown() {
 		Type: RenderingType,
 		Attributes: &app.MarkupRenderingPayloadDataAttributes{
 			Content: "foo",
-			Markup:  rendering.SystemMarkupMarkdown,
+			Markup:  markup.SystemMarkupMarkdown,
 		}}}
 
 	// when

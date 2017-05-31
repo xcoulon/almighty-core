@@ -6,7 +6,7 @@ import (
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
-	"github.com/almighty/almighty-core/rendering"
+	"github.com/almighty/almighty-core/markup"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
@@ -49,7 +49,7 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 		}
 
 		reqComment := ctx.Payload.Data
-		markup := rendering.NilSafeGetMarkup(reqComment.Attributes.Markup)
+		markup := markup.NilSafeGetMarkup(reqComment.Attributes.Markup)
 		newComment := comment.Comment{
 			ParentID:  ctx.WiID.String(),
 			Body:      reqComment.Attributes.Body,
@@ -63,7 +63,7 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 		}
 
 		res := &app.CommentSingle{
-			Data: ConvertComment(ctx.RequestData, newComment),
+			Data: ConvertComment(ctx, ctx.RequestData, appl, newComment),
 		}
 		return ctx.OK(res)
 	})
@@ -86,7 +86,7 @@ func (c *WorkItemCommentsController) List(ctx *app.ListWorkItemCommentsContext) 
 			res := &app.CommentList{}
 			res.Data = []*app.Comment{}
 			res.Meta = &app.CommentListMeta{TotalCount: count}
-			res.Data = ConvertComments(ctx.RequestData, comments)
+			res.Data = ConvertComments(ctx, ctx.RequestData, appl, comments)
 			res.Links = &app.PagingLinks{}
 			setPagingLinks(res.Links, buildAbsoluteURL(ctx.RequestData), len(comments), offset, limit, count)
 			return ctx.OK(res)

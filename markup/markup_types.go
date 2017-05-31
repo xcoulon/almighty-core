@@ -1,4 +1,4 @@
-package rendering
+package markup
 
 const (
 	// SystemMarkupDefault Default value

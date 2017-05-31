@@ -272,7 +272,7 @@ func main() {
 	app.MountUserspaceController(service, userspaceCtrl)
 
 	// Mount "render" controller
-	renderCtrl := controller.NewRenderController(service)
+	renderCtrl := controller.NewRenderController(service, appDB)
 	app.MountRenderController(service, renderCtrl)
 
 	// Mount "areas" controller

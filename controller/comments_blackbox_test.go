@@ -2,7 +2,6 @@ package controller_test
 
 import (
 	"fmt"
-	"html"
 	"net/http"
 	"strings"
 	"testing"
@@ -17,7 +16,7 @@ import (
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/rendering"
+	"github.com/almighty/almighty-core/markup"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/space"
@@ -62,9 +61,9 @@ func (s *CommentsSuite) TearDownTest() {
 }
 
 var (
-	markdownMarkup  = rendering.SystemMarkupMarkdown
-	plaintextMarkup = rendering.SystemMarkupPlainText
-	defaultMarkup   = rendering.SystemMarkupDefault
+	markdownMarkup  = markup.SystemMarkupMarkdown
+	plaintextMarkup = markup.SystemMarkupPlainText
+	defaultMarkup   = markup.SystemMarkupDefault
 )
 
 func (s *CommentsSuite) unsecuredController() (*goa.Service, *CommentsController) {
@@ -150,7 +149,7 @@ func (s *CommentsSuite) createWorkItemComment(identity account.Identity, wID uui
 	return *c
 }
 
-func assertComment(t *testing.T, resultData *app.Comment, expectedIdentity account.Identity, expectedBody string, expectedMarkup string) {
+func assertComment(t *testing.T, resultData *app.Comment, expectedIdentity account.Identity, expectedBody, expectedRenderedBody, expectedMarkup string) {
 	require.NotNil(t, resultData)
 	assert.NotNil(t, resultData.ID)
 	assert.NotNil(t, resultData.Type)
@@ -162,7 +161,7 @@ func assertComment(t *testing.T, resultData *app.Comment, expectedIdentity accou
 	assert.Equal(t, expectedBody, *resultData.Attributes.Body)
 	require.NotNil(t, resultData.Attributes.Markup)
 	assert.Equal(t, expectedMarkup, *resultData.Attributes.Markup)
-	assert.Equal(t, rendering.RenderMarkupToHTML(html.EscapeString(expectedBody), expectedMarkup), *resultData.Attributes.BodyRendered)
+	assert.Equal(t, expectedRenderedBody, *resultData.Attributes.BodyRendered)
 	require.NotNil(t, resultData.Relationships)
 	require.NotNil(t, resultData.Relationships.CreatedBy)
 	require.NotNil(t, resultData.Relationships.CreatedBy.Data)
@@ -188,7 +187,7 @@ func (s *CommentsSuite) TestShowCommentWithoutAuthOK() {
 	userSvc, commentsCtrl := s.unsecuredController()
 	_, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, nil, nil)
 	// then
-	assertComment(s.T(), result.Data, s.testIdentity, "body", rendering.SystemMarkupMarkdown)
+	assertComment(s.T(), result.Data, s.testIdentity, "body", "<p>body</p>\n", markup.SystemMarkupMarkdown)
 }
 
 func (s *CommentsSuite) TestShowCommentWithoutAuthOKUsingExpiredIfModifiedSinceHeader() {
@@ -200,7 +199,7 @@ func (s *CommentsSuite) TestShowCommentWithoutAuthOKUsingExpiredIfModifiedSinceH
 	userSvc, commentsCtrl := s.unsecuredController()
 	res, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, &ifModifiedSince, nil)
 	// then
-	assertComment(s.T(), result.Data, s.testIdentity, "body", rendering.SystemMarkupMarkdown)
+	assertComment(s.T(), result.Data, s.testIdentity, "body", "<p>body</p>\n", markup.SystemMarkupMarkdown)
 	assertResponseHeaders(s.T(), res)
 }
 
@@ -213,7 +212,7 @@ func (s *CommentsSuite) TestShowCommentWithoutAuthOKUsingExpiredIfNoneMatchHeade
 	userSvc, commentsCtrl := s.unsecuredController()
 	res, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, nil, &ifNoneMatch)
 	// then
-	assertComment(s.T(), result.Data, s.testIdentity, "body", rendering.SystemMarkupMarkdown)
+	assertComment(s.T(), result.Data, s.testIdentity, "body", "<p>body</p>\n", markup.SystemMarkupMarkdown)
 	assertResponseHeaders(s.T(), res)
 }
 
@@ -250,7 +249,7 @@ func (s *CommentsSuite) TestShowCommentWithoutAuthWithMarkup() {
 	userSvc, commentsCtrl := s.unsecuredController()
 	_, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, nil, nil)
 	// then
-	assertComment(s.T(), result.Data, s.testIdentity, "body", rendering.SystemMarkupPlainText)
+	assertComment(s.T(), result.Data, s.testIdentity, "body", "body", markup.SystemMarkupPlainText)
 }
 
 func (s *CommentsSuite) TestShowCommentWithAuth() {
@@ -261,7 +260,7 @@ func (s *CommentsSuite) TestShowCommentWithAuth() {
 	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
 	_, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, nil, nil)
 	// then
-	assertComment(s.T(), result.Data, s.testIdentity, "body", rendering.SystemMarkupPlainText)
+	assertComment(s.T(), result.Data, s.testIdentity, "body", "body", markup.SystemMarkupPlainText)
 }
 
 func (s *CommentsSuite) TestShowCommentWithEscapedScriptInjection() {
@@ -272,7 +271,7 @@ func (s *CommentsSuite) TestShowCommentWithEscapedScriptInjection() {
 	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
 	_, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, nil, nil)
 	// then
-	assertComment(s.T(), result.Data, s.testIdentity, "<img src=x onerror=alert('body') />", rendering.SystemMarkupPlainText)
+	assertComment(s.T(), result.Data, s.testIdentity, "<img src=x onerror=alert('body') />", "&lt;img src=x onerror=alert(&#39;body&#39;) /&gt;", markup.SystemMarkupPlainText)
 }
 
 func (s *CommentsSuite) TestUpdateCommentWithoutAuth() {
@@ -293,7 +292,7 @@ func (s *CommentsSuite) TestUpdateCommentWithSameUserWithOtherMarkup() {
 	updateCommentPayload := s.newUpdateCommentsPayload("updated body", &markdownMarkup)
 	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
 	_, result := test.UpdateCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, updateCommentPayload)
-	assertComment(s.T(), result.Data, s.testIdentity, "updated body", rendering.SystemMarkupMarkdown)
+	assertComment(s.T(), result.Data, s.testIdentity, "updated body", "<p>updated body</p>\n", markup.SystemMarkupMarkdown)
 }
 
 func (s *CommentsSuite) TestUpdateCommentWithSameUserWithNilMarkup() {
@@ -304,7 +303,7 @@ func (s *CommentsSuite) TestUpdateCommentWithSameUserWithNilMarkup() {
 	updateCommentPayload := s.newUpdateCommentsPayload("updated body", nil)
 	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
 	_, result := test.UpdateCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, updateCommentPayload)
-	assertComment(s.T(), result.Data, s.testIdentity, "updated body", rendering.SystemMarkupDefault)
+	assertComment(s.T(), result.Data, s.testIdentity, "updated body", "updated body", markup.SystemMarkupDefault)
 }
 
 func (s *CommentsSuite) TestUpdateCommentWithOtherUser() {

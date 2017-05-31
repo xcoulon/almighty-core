@@ -5,7 +5,7 @@ import (
 
 	"reflect"
 
-	"github.com/almighty/almighty-core/rendering"
+	"github.com/almighty/almighty-core/markup"
 	"github.com/almighty/almighty-core/resource"
 	. "github.com/almighty/almighty-core/workitem"
 )
@@ -34,10 +34,10 @@ func TestSimpleTypeConversion(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	markupContent1 := make(map[string]interface{})
 	markupContent1["content"] = "## description"
-	markupContent1["markup"] = rendering.SystemMarkupDefault
+	markupContent1["markup"] = markup.SystemMarkupDefault
 	markupContent2 := make(map[string]interface{})
 	markupContent2["content"] = "## description"
-	markupContent2["markup"] = rendering.SystemMarkupMarkdown
+	markupContent2["markup"] = markup.SystemMarkupMarkdown
 
 	test_data := []input{
 		{stString, "hello world", "hello world", false},
@@ -81,8 +81,8 @@ func TestSimpleTypeConversion(t *testing.T) {
 		// {stList, []int{}, []int{}, false}, need to find out the way for empty array.
 		// because slices do not have equality operator.
 
-		{stMarkup, rendering.NewMarkupContent("## description", rendering.SystemMarkupDefault), markupContent1, false},
-		{stMarkup, rendering.NewMarkupContent("## description", rendering.SystemMarkupMarkdown), markupContent2, false},
+		{stMarkup, markup.NewMarkupContent("## description", markup.SystemMarkupDefault), markupContent1, false},
+		{stMarkup, markup.NewMarkupContent("## description", markup.SystemMarkupMarkdown), markupContent2, false},
 		{stMarkup, nil, nil, false},
 		{stMarkup, 1, nil, true},
 	}

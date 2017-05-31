@@ -10,8 +10,8 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
+	"github.com/almighty/almighty-core/markup"
 	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/test"
@@ -126,9 +126,9 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithExistingIdentitie
 	assert.Contains(s.T(), workItem.Fields[workitem.SystemAssignees], identity2.ID.String())
 	assert.Equal(s.T(), "closed", workItem.Fields[workitem.SystemState])
 	require.NotNil(s.T(), workItem.Fields[workitem.SystemDescription])
-	description := workItem.Fields[workitem.SystemDescription].(rendering.MarkupContent)
+	description := workItem.Fields[workitem.SystemDescription].(markup.MarkupContent)
 	assert.Equal(s.T(), "body of issue", description.Content)
-	assert.Equal(s.T(), rendering.SystemMarkupMarkdown, description.Markup)
+	assert.Equal(s.T(), markup.SystemMarkupMarkdown, description.Markup)
 }
 
 func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithUnknownIdentities() {
@@ -166,9 +166,9 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithUnknownIdentities
 	assert.Equal(s.T(), 2, len(workItem.Fields[workitem.SystemAssignees].([]interface{})))
 	assert.Equal(s.T(), "closed", workItem.Fields[workitem.SystemState])
 	require.NotNil(s.T(), workItem.Fields[workitem.SystemDescription])
-	description := workItem.Fields[workitem.SystemDescription].(rendering.MarkupContent)
+	description := workItem.Fields[workitem.SystemDescription].(markup.MarkupContent)
 	assert.Equal(s.T(), "body of issue", description.Content)
-	assert.Equal(s.T(), rendering.SystemMarkupMarkdown, description.Markup)
+	assert.Equal(s.T(), markup.SystemMarkupMarkdown, description.Markup)
 	// look-up creator identity in repository
 	require.NotNil(s.T(), workItem.Fields[workitem.SystemCreator])
 	identityID := workItem.Fields[workitem.SystemCreator]
@@ -212,9 +212,9 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithNoAssignee() {
 	assert.Empty(s.T(), workItem.Fields[workitem.SystemAssignees])
 	assert.Equal(s.T(), "closed", workItem.Fields[workitem.SystemState])
 	require.NotNil(s.T(), workItem.Fields[workitem.SystemDescription])
-	description := workItem.Fields[workitem.SystemDescription].(rendering.MarkupContent)
+	description := workItem.Fields[workitem.SystemDescription].(markup.MarkupContent)
 	assert.Equal(s.T(), "body of issue", description.Content)
-	assert.Equal(s.T(), rendering.SystemMarkupMarkdown, description.Markup)
+	assert.Equal(s.T(), markup.SystemMarkupMarkdown, description.Markup)
 	// look-up creator identity in repository
 	require.NotNil(s.T(), workItem.Fields[workitem.SystemCreator])
 	identityID := workItem.Fields[workitem.SystemCreator]

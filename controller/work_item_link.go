@@ -96,7 +96,7 @@ func getTypesOfLinks(ctx *workItemLinkContext, linksDataArr []*app.WorkItemLinkD
 
 // getWorkItemsOfLinks returns an array of distinct work items as they appear as
 // source or target in the given work item links.
-func getWorkItemsOfLinks(ctx *workItemLinkContext, linksDataArr []*app.WorkItemLinkData) ([]*app.WorkItem, error) {
+func getWorkItemsOfLinks(wilCtx *workItemLinkContext, linksDataArr []*app.WorkItemLinkData) ([]*app.WorkItem, error) {
 	// Build our "set" of distinct work item IDs already converted as strings
 	workItemIDMap := map[uuid.UUID]bool{}
 	for _, linkData := range linksDataArr {
@@ -106,11 +106,11 @@ func getWorkItemsOfLinks(ctx *workItemLinkContext, linksDataArr []*app.WorkItemL
 	// Now include the optional work item data in the work item link "included" array
 	workItemArr := []*app.WorkItem{}
 	for workItemID := range workItemIDMap {
-		wi, err := ctx.Application.WorkItems().LoadByID(ctx.Context, workItemID)
+		wi, err := wilCtx.Application.WorkItems().LoadByID(wilCtx.Context, workItemID)
 		if err != nil {
 			return nil, errs.WithStack(err)
 		}
-		workItemArr = append(workItemArr, ConvertWorkItem(ctx.RequestData, *wi))
+		workItemArr = append(workItemArr, ConvertWorkItem(wilCtx.Context, wilCtx.RequestData, wilCtx.Application, *wi))
 	}
 	return workItemArr, nil
 }
@@ -137,17 +137,17 @@ func getCategoriesOfLinkTypes(ctx *workItemLinkContext, linkTypeDataArr []*app.W
 }
 
 // enrichLinkSingle includes related resources in the link's "included" array
-func enrichLinkSingle(ctx *workItemLinkContext, appLinks *app.WorkItemLinkSingle) error {
+func enrichLinkSingle(wilCtx *workItemLinkContext, appLinks *app.WorkItemLinkSingle) error {
 	// include link type
-	modelLinkType, err := ctx.Application.WorkItemLinkTypes().Load(ctx.Context, appLinks.Data.Relationships.LinkType.Data.ID)
+	modelLinkType, err := wilCtx.Application.WorkItemLinkTypes().Load(wilCtx.Context, appLinks.Data.Relationships.LinkType.Data.ID)
 	if err != nil {
 		return errs.WithStack(err)
 	}
-	appLinkType := ConvertWorkItemLinkTypeFromModel(ctx.RequestData, *modelLinkType)
+	appLinkType := ConvertWorkItemLinkTypeFromModel(wilCtx.RequestData, *modelLinkType)
 	appLinks.Included = append(appLinks.Included, appLinkType.Data)
 
 	// include link category
-	modelCategory, err := ctx.Application.WorkItemLinkCategories().Load(ctx.Context, appLinkType.Data.Relationships.LinkCategory.Data.ID)
+	modelCategory, err := wilCtx.Application.WorkItemLinkCategories().Load(wilCtx.Context, appLinkType.Data.Relationships.LinkCategory.Data.ID)
 	if err != nil {
 		return errs.WithStack(err)
 	}
@@ -169,21 +169,21 @@ func enrichLinkSingle(ctx *workItemLinkContext, appLinks *app.WorkItemLinkSingle
 	// link.Included = append(link.Included, targetWit.Data)
 
 	// TODO(kwk): include source work item
-	sourceWi, err := ctx.Application.WorkItems().LoadByID(ctx.Context, appLinks.Data.Relationships.Source.Data.ID)
+	sourceWi, err := wilCtx.Application.WorkItems().LoadByID(wilCtx.Context, appLinks.Data.Relationships.Source.Data.ID)
 	if err != nil {
 		return errs.WithStack(err)
 	}
-	appLinks.Included = append(appLinks.Included, ConvertWorkItem(ctx.RequestData, *sourceWi))
+	appLinks.Included = append(appLinks.Included, ConvertWorkItem(wilCtx.Context, wilCtx.RequestData, wilCtx.Application, *sourceWi))
 
 	// TODO(kwk): include target work item
-	targetWi, err := ctx.Application.WorkItems().LoadByID(ctx.Context, appLinks.Data.Relationships.Target.Data.ID)
+	targetWi, err := wilCtx.Application.WorkItems().LoadByID(wilCtx.Context, appLinks.Data.Relationships.Target.Data.ID)
 	if err != nil {
 		return errs.WithStack(err)
 	}
-	appLinks.Included = append(appLinks.Included, ConvertWorkItem(ctx.RequestData, *targetWi))
+	appLinks.Included = append(appLinks.Included, ConvertWorkItem(wilCtx.Context, wilCtx.RequestData, wilCtx.Application, *targetWi))
 
 	// Add links to individual link data element
-	selfURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*appLinks.Data.ID))
+	selfURL := rest.AbsoluteURL(wilCtx.RequestData, wilCtx.LinkFunc(*appLinks.Data.ID))
 	appLinks.Data.Links = &app.GenericLinks{
 		Self: &selfURL,
 	}
@@ -249,7 +249,7 @@ type createWorkItemLinkFuncs interface {
 	Unauthorized(r *app.JSONAPIErrors) error
 }
 
-func createWorkItemLink(ctx *workItemLinkContext, httpFuncs createWorkItemLinkFuncs, payload *app.CreateWorkItemLinkPayload) error {
+func createWorkItemLink(wilCtx *workItemLinkContext, httpFuncs createWorkItemLinkFuncs, payload *app.CreateWorkItemLinkPayload) error {
 	// Convert payload from app to model representation
 	in := app.WorkItemLinkSingle{
 		Data: payload.Data,
@@ -258,7 +258,7 @@ func createWorkItemLink(ctx *workItemLinkContext, httpFuncs createWorkItemLinkFu
 	if err != nil {
 		return jsonapi.JSONErrorResponse(httpFuncs, err)
 	}
-	createdModelLink, err := ctx.Application.WorkItemLinks().Create(ctx.Context, modelLink.SourceID, modelLink.TargetID, modelLink.LinkTypeID, *ctx.CurrentUserIdentityID)
+	createdModelLink, err := wilCtx.Application.WorkItemLinks().Create(wilCtx.Context, modelLink.SourceID, modelLink.TargetID, modelLink.LinkTypeID, *wilCtx.CurrentUserIdentityID)
 	if err != nil {
 		cause := errs.Cause(err)
 		switch cause.(type) {
@@ -271,10 +271,10 @@ func createWorkItemLink(ctx *workItemLinkContext, httpFuncs createWorkItemLinkFu
 	}
 	// convert from model to rest representation
 	createdAppLink := ConvertLinkFromModel(*createdModelLink)
-	if err := enrichLinkSingle(ctx, &createdAppLink); err != nil {
+	if err := enrichLinkSingle(wilCtx, &createdAppLink); err != nil {
 		return jsonapi.JSONErrorResponse(httpFuncs, err)
 	}
-	ctx.ResponseData.Header().Set("Location", app.WorkItemLinkHref(createdAppLink.Data.ID))
+	wilCtx.ResponseData.Header().Set("Location", app.WorkItemLinkHref(createdAppLink.Data.ID))
 	return httpFuncs.Created(&createdAppLink)
 }
 

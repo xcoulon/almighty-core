@@ -1,7 +1,6 @@
 package controller_test
 
 import (
-	"html"
 	"net/http"
 	"net/url"
 	"testing"
@@ -18,7 +17,7 @@ import (
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/rendering"
+	"github.com/almighty/almighty-core/markup"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
@@ -108,34 +107,17 @@ func (rest *TestCommentREST) createDefaultWorkItem() *workitem.WorkItem {
 	return workItem
 }
 
-func assertWorkItemComment(t *testing.T, c *app.Comment, expectedBody string, expectedMarkup string) {
-	assert.NotNil(t, c)
-	assert.Equal(t, "comments", c.Type)
-	assert.NotNil(t, c.ID)
-	require.NotNil(t, c.Attributes)
-	assert.Equal(t, expectedBody, *c.Attributes.Body)
-	assert.Equal(t, expectedMarkup, *c.Attributes.Markup)
-	assert.Equal(t, rendering.RenderMarkupToHTML(html.EscapeString(expectedBody), expectedMarkup), *c.Attributes.BodyRendered)
-	require.NotNil(t, c.Attributes.CreatedAt)
-	assert.WithinDuration(t, time.Now(), *c.Attributes.CreatedAt, 2*time.Second)
-	require.NotNil(t, c.Relationships)
-	require.NotNil(t, c.Relationships.CreatedBy)
-	require.NotNil(t, c.Relationships.CreatedBy.Data)
-	assert.Equal(t, "identities", c.Relationships.CreatedBy.Data.Type)
-	assert.NotNil(t, c.Relationships.CreatedBy.Data.ID)
-}
-
 func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithMarkup() {
 	// given
 	wi := rest.createDefaultWorkItem()
 
 	// when
-	markup := rendering.SystemMarkupMarkdown
+	markup := markup.SystemMarkupMarkdown
 	p := rest.newCreateWorkItemCommentsPayload("Test", &markup)
 	svc, ctrl := rest.SecuredController()
 	_, c := test.CreateWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID, wi.ID, p)
 	// then
-	assertComment(rest.T(), c.Data, rest.testIdentity, "Test", markup)
+	assertComment(rest.T(), c.Data, rest.testIdentity, "Test", "<p>Test</p>\n", markup)
 }
 
 func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithDefaultMarkup() {
@@ -146,7 +128,7 @@ func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithDefaultMarkup() {
 	svc, ctrl := rest.SecuredController()
 	_, c := test.CreateWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID, wi.ID, p)
 	// then
-	assertComment(rest.T(), c.Data, rest.testIdentity, "Test", rendering.SystemMarkupDefault)
+	assertComment(rest.T(), c.Data, rest.testIdentity, "Test", "Test", markup.SystemMarkupDefault)
 }
 
 func (rest *TestCommentREST) setupComments() (workitem.WorkItem, []*comment.Comment) {
@@ -168,7 +150,7 @@ func (rest *TestCommentREST) setupComments() (workitem.WorkItem, []*comment.Comm
 
 func assertComments(t *testing.T, expectedIdentity account.Identity, comments *app.CommentList) {
 	require.Equal(t, 3, len(comments.Data))
-	assertComment(t, comments.Data[0], expectedIdentity, "Test 3", rendering.SystemMarkupDefault) // items are returned in reverse order or creation
+	assertComment(t, comments.Data[0], expectedIdentity, "Test 3", "Test 3", markup.SystemMarkupDefault) // items are returned in reverse order or creation
 }
 
 func (rest *TestCommentREST) TestListCommentsByParentWorkItemOK() {

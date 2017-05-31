@@ -9,8 +9,8 @@ import (
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/iteration"
+	"github.com/almighty/almighty-core/markup"
 	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
@@ -134,7 +134,7 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionNoMarkup() {
 		s.ctx, s.spaceID, workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "Title",
-			workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("Description"),
+			workitem.SystemDescription: markup.NewMarkupContentFromLegacy("Description"),
 			workitem.SystemState:       workitem.SystemStateNew,
 		}, s.creatorID)
 	require.Nil(s.T(), err, "Could not create workitem")
@@ -143,7 +143,7 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionNoMarkup() {
 	// then
 	require.Nil(s.T(), err)
 	// workitem.WorkItem does not contain the markup associated with the description (yet)
-	assert.Equal(s.T(), rendering.NewMarkupContentFromLegacy("Description"), wi.Fields[workitem.SystemDescription])
+	assert.Equal(s.T(), markup.NewMarkupContentFromLegacy("Description"), wi.Fields[workitem.SystemDescription])
 }
 
 func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionMarkup() {
@@ -154,7 +154,7 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionMarkup() {
 		workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "Title",
-			workitem.SystemDescription: rendering.NewMarkupContent("Description", rendering.SystemMarkupMarkdown),
+			workitem.SystemDescription: markup.NewMarkupContent("Description", markup.SystemMarkupMarkdown),
 			workitem.SystemState:       workitem.SystemStateNew,
 		},
 		s.creatorID)
@@ -164,7 +164,7 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionMarkup() {
 	// then
 	require.Nil(s.T(), err)
 	// workitem.WorkItem does not contain the markup associated with the description (yet)
-	assert.Equal(s.T(), rendering.NewMarkupContent("Description", rendering.SystemMarkupMarkdown), wi.Fields[workitem.SystemDescription])
+	assert.Equal(s.T(), markup.NewMarkupContent("Description", markup.SystemMarkupMarkdown), wi.Fields[workitem.SystemDescription])
 }
 
 // TestTypeChangeIsNotProhibitedOnDBLayer tests that you can change the type of

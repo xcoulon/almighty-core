@@ -6,7 +6,7 @@ import (
 
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/rendering"
+	"github.com/almighty/almighty-core/markup"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 
@@ -47,7 +47,7 @@ func (m *GormCommentRepository) Create(ctx context.Context, comment *Comment, cr
 	comment.ID = uuid.NewV4()
 	// make sure no comment is created with an empty 'markup' value
 	if comment.Markup == "" {
-		comment.Markup = rendering.SystemMarkupDefault
+		comment.Markup = markup.SystemMarkupDefault
 	}
 	if err := m.db.Create(comment).Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -88,7 +88,7 @@ func (m *GormCommentRepository) Save(ctx context.Context, comment *Comment, modi
 	}
 	// make sure no comment is created with an empty 'markup' value
 	if comment.Markup == "" {
-		comment.Markup = rendering.SystemMarkupDefault
+		comment.Markup = markup.SystemMarkupDefault
 	}
 	tx = tx.Save(comment)
 	if err := tx.Error; err != nil {

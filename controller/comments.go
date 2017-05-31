@@ -10,8 +10,10 @@ import (
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/login"
-	"github.com/almighty/almighty-core/rendering"
+	"github.com/almighty/almighty-core/markup"
+	"github.com/almighty/almighty-core/markup/rendering"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -54,7 +56,9 @@ func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
 				return errors.NewNotFoundError("comment parentID", cmt.ParentID)
 			}
 			res.Data = ConvertComment(
+				ctx,
 				ctx.RequestData,
+				appl,
 				*cmt,
 				includeParentWorkItem)
 			return ctx.OK(res)
@@ -82,7 +86,7 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 		}
 
 		cm.Body = *ctx.Payload.Data.Attributes.Body
-		cm.Markup = rendering.NilSafeGetMarkup(ctx.Payload.Data.Attributes.Markup)
+		cm.Markup = markup.NilSafeGetMarkup(ctx.Payload.Data.Attributes.Markup)
 		err = appl.Comments().Save(ctx.Context, cm, *identityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
@@ -95,7 +99,7 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 		}
 
 		res := &app.CommentSingle{
-			Data: ConvertComment(ctx.RequestData, *cm, includeParentWorkItem),
+			Data: ConvertComment(ctx, ctx.RequestData, appl, *cm, includeParentWorkItem),
 		}
 		return ctx.OK(res)
 	})
@@ -132,12 +136,12 @@ func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
 type CommentConvertFunc func(*goa.RequestData, *comment.Comment, *app.Comment)
 
 // ConvertComments converts between internal and external REST representation
-func ConvertComments(request *goa.RequestData, comments []comment.Comment, additional ...CommentConvertFunc) []*app.Comment {
-	var cs = []*app.Comment{}
-	for _, c := range comments {
-		cs = append(cs, ConvertComment(request, c, additional...))
+func ConvertComments(ctx context.Context, request *goa.RequestData, appl application.Application, comments []comment.Comment, additional ...CommentConvertFunc) []*app.Comment {
+	var result = []*app.Comment{}
+	for _, cmt := range comments {
+		result = append(result, ConvertComment(ctx, request, appl, cmt, additional...))
 	}
-	return cs
+	return result
 }
 
 // ConvertCommentsResourceID converts between internal and external REST representation, ResourceIdentificationObject only
@@ -162,26 +166,45 @@ func ConvertCommentResourceID(request *goa.RequestData, comment comment.Comment,
 }
 
 // ConvertComment converts between internal and external REST representation
-func ConvertComment(request *goa.RequestData, comment comment.Comment, additional ...CommentConvertFunc) *app.Comment {
-	selfURL := rest.AbsoluteURL(request, app.CommentsHref(comment.ID))
-	markup := rendering.NilSafeGetMarkup(&comment.Markup)
-	bodyRendered := rendering.RenderMarkupToHTML(html.EscapeString(comment.Body), comment.Markup)
-	relatedCreatorLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, comment.CreatedBy.String()))
+func ConvertComment(ctx context.Context, request *goa.RequestData, appl application.Application, cmt comment.Comment, additional ...CommentConvertFunc) *app.Comment {
+	selfURL := rest.AbsoluteURL(request, app.CommentsHref(cmt.ID))
+	markup := markup.NilSafeGetMarkup(&cmt.Markup)
+	workitemRepo := appl.WorkItems()
+	renderer := rendering.NewMarkupRenderer(appl.WorkItems(), rest.BaseURL(request))
+	parentUUID, err := uuid.FromString(cmt.ParentID)
+	if err != nil {
+		// here we just log the error and return a nil 'rendered' body of the given comment
+		log.Error(ctx, map[string]interface{}{"comment_id": cmt.ID}, "Failed to parse the comment's parent id with value '%s'", cmt.ParentID)
+		return nil
+	}
+	wi, err := workitemRepo.LoadByID(ctx, parentUUID)
+	if err != nil {
+		// here we just log the error and return a nil 'rendered' body of the given comment
+		log.Error(ctx, map[string]interface{}{"comment_id": cmt.ID}, "Failed to find the parent work item for the comment")
+		return nil
+	}
+	bodyRendered, err := renderer.RenderMarkupToHTML(ctx, wi.SpaceID, html.EscapeString(cmt.Body), cmt.Markup)
+	if err != nil {
+		// here we just log the error and return a nil 'rendered' body of the given comment
+		log.Error(ctx, map[string]interface{}{"comment_id": cmt.ID}, "Failed to render the body for the comment")
+		return nil
+	}
+	relatedCreatorLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, cmt.CreatedBy.String()))
 	c := &app.Comment{
 		Type: "comments",
-		ID:   &comment.ID,
+		ID:   &cmt.ID,
 		Attributes: &app.CommentAttributes{
-			Body:         &comment.Body,
-			BodyRendered: &bodyRendered,
+			Body:         &cmt.Body,
+			BodyRendered: bodyRendered,
 			Markup:       &markup,
-			CreatedAt:    &comment.CreatedAt,
-			UpdatedAt:    &comment.UpdatedAt,
+			CreatedAt:    &cmt.CreatedAt,
+			UpdatedAt:    &cmt.UpdatedAt,
 		},
 		Relationships: &app.CommentRelations{
 			CreatedBy: &app.CommentCreatedBy{
 				Data: &app.IdentityRelationData{
 					Type: "identities",
-					ID:   &comment.CreatedBy,
+					ID:   &cmt.CreatedBy,
 				},
 				Links: &app.GenericLinks{
 					Related: &relatedCreatorLink,
@@ -193,7 +216,7 @@ func ConvertComment(request *goa.RequestData, comment comment.Comment, additiona
 		},
 	}
 	for _, add := range additional {
-		add(request, &comment, c)
+		add(request, &cmt, c)
 	}
 	return c
 }

@@ -10,8 +10,8 @@ import (
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
+	"github.com/almighty/almighty-core/markup"
 	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
 
@@ -77,7 +77,7 @@ func (s *TestCommentRepository) createComments(comments []*comment.Comment, crea
 
 func (s *TestCommentRepository) TestCreateCommentWithMarkup() {
 	// given
-	comment := newComment("A", "Test A", rendering.SystemMarkupMarkdown)
+	comment := newComment("A", "Test A", markup.SystemMarkupMarkdown)
 	// when
 	s.repo.Create(s.ctx, comment, s.testIdentity.ID)
 	// then
@@ -95,17 +95,17 @@ func (s *TestCommentRepository) TestCreateCommentWithoutMarkup() {
 	assert.NotNil(s.T(), comment.ID, "Comment was not created, ID nil")
 	require.NotNil(s.T(), comment.CreatedAt, "Comment was not created?")
 	assert.False(s.T(), comment.CreatedAt.After(time.Now()), "CreatedAt after Now()?")
-	assert.Equal(s.T(), rendering.SystemMarkupDefault, comment.Markup)
+	assert.Equal(s.T(), markup.SystemMarkupDefault, comment.Markup)
 }
 
 func (s *TestCommentRepository) TestSaveCommentWithMarkup() {
 	// given
-	comment := newComment("A", "Test A", rendering.SystemMarkupPlainText)
+	comment := newComment("A", "Test A", markup.SystemMarkupPlainText)
 	s.createComment(comment, s.testIdentity.ID)
 	assert.NotNil(s.T(), comment.ID, "Comment was not created, ID nil")
 	// when
 	comment.Body = "Test AB"
-	comment.Markup = rendering.SystemMarkupMarkdown
+	comment.Markup = markup.SystemMarkupMarkdown
 	s.repo.Save(s.ctx, comment, s.testIdentity.ID)
 	offset := 0
 	limit := 1
@@ -114,12 +114,12 @@ func (s *TestCommentRepository) TestSaveCommentWithMarkup() {
 	require.Nil(s.T(), err)
 	require.Equal(s.T(), 1, len(comments), "List returned more then expected based on parentID")
 	assert.Equal(s.T(), "Test AB", comments[0].Body)
-	assert.Equal(s.T(), rendering.SystemMarkupMarkdown, comments[0].Markup)
+	assert.Equal(s.T(), markup.SystemMarkupMarkdown, comments[0].Markup)
 }
 
 func (s *TestCommentRepository) TestSaveCommentWithoutMarkup() {
 	// given
-	comment := newComment("A", "Test A", rendering.SystemMarkupMarkdown)
+	comment := newComment("A", "Test A", markup.SystemMarkupMarkdown)
 	s.createComment(comment, s.testIdentity.ID)
 	assert.NotNil(s.T(), comment.ID, "Comment was not created, ID nil")
 	// when
@@ -133,7 +133,7 @@ func (s *TestCommentRepository) TestSaveCommentWithoutMarkup() {
 	require.Nil(s.T(), err)
 	require.Equal(s.T(), 1, len(comments), "List returned more then expected based on parentID")
 	assert.Equal(s.T(), "Test AB", comments[0].Body)
-	assert.Equal(s.T(), rendering.SystemMarkupPlainText, comments[0].Markup)
+	assert.Equal(s.T(), markup.SystemMarkupPlainText, comments[0].Markup)
 }
 
 func (s *TestCommentRepository) TestDeleteComment() {
@@ -156,8 +156,8 @@ func (s *TestCommentRepository) TestDeleteComment() {
 func (s *TestCommentRepository) TestCountComments() {
 	// given
 	parentID := "A"
-	comment1 := newComment("A", "Test A", rendering.SystemMarkupMarkdown)
-	comment2 := newComment("B", "Test B", rendering.SystemMarkupMarkdown)
+	comment1 := newComment("A", "Test A", markup.SystemMarkupMarkdown)
+	comment2 := newComment("B", "Test B", markup.SystemMarkupMarkdown)
 	comments := []*comment.Comment{comment1, comment2}
 	s.createComments(comments, s.testIdentity.ID)
 	// when
@@ -169,8 +169,8 @@ func (s *TestCommentRepository) TestCountComments() {
 
 func (s *TestCommentRepository) TestListComments() {
 	// given
-	comment1 := newComment("A", "Test A", rendering.SystemMarkupMarkdown)
-	comment2 := newComment("B", "Test B", rendering.SystemMarkupMarkdown)
+	comment1 := newComment("A", "Test A", markup.SystemMarkupMarkdown)
+	comment2 := newComment("B", "Test B", markup.SystemMarkupMarkdown)
 	createdComments := []*comment.Comment{comment1, comment2}
 	s.createComments(createdComments, s.testIdentity.ID)
 	// when
@@ -185,8 +185,8 @@ func (s *TestCommentRepository) TestListComments() {
 
 func (s *TestCommentRepository) TestListCommentsWrongOffset() {
 	// given
-	comment1 := newComment("A", "Test A", rendering.SystemMarkupMarkdown)
-	comment2 := newComment("B", "Test B", rendering.SystemMarkupMarkdown)
+	comment1 := newComment("A", "Test A", markup.SystemMarkupMarkdown)
+	comment2 := newComment("B", "Test B", markup.SystemMarkupMarkdown)
 	comments := []*comment.Comment{comment1, comment2}
 	s.createComments(comments, s.testIdentity.ID)
 	// when
@@ -199,8 +199,8 @@ func (s *TestCommentRepository) TestListCommentsWrongOffset() {
 
 func (s *TestCommentRepository) TestListCommentsWrongLimit() {
 	// given
-	comment1 := newComment("A", "Test A", rendering.SystemMarkupMarkdown)
-	comment2 := newComment("B", "Test B", rendering.SystemMarkupMarkdown)
+	comment1 := newComment("A", "Test A", markup.SystemMarkupMarkdown)
+	comment2 := newComment("B", "Test B", markup.SystemMarkupMarkdown)
 	comments := []*comment.Comment{comment1, comment2}
 	s.createComments(comments, s.testIdentity.ID)
 	// when
@@ -213,7 +213,7 @@ func (s *TestCommentRepository) TestListCommentsWrongLimit() {
 
 func (s *TestCommentRepository) TestLoadComment() {
 	// given
-	comment := newComment("A", "Test A", rendering.SystemMarkupMarkdown)
+	comment := newComment("A", "Test A", markup.SystemMarkupMarkdown)
 	s.createComment(comment, s.testIdentity.ID)
 	// when
 	loadedComment, err := s.repo.Load(s.ctx, comment.ID)

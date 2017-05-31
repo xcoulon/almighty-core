@@ -1,4 +1,4 @@
-package rendering
+package markup
 
 import "testing"
 import "github.com/stretchr/testify/assert"
@@ -26,4 +26,12 @@ func TestGetMarkupFromEmptyValue(t *testing.T) {
 	result := NilSafeGetMarkup(&markup)
 	// then
 	assert.Equal(t, SystemMarkupDefault, result)
+}
+
+func TestIsMarkupSupported(t *testing.T) {
+	assert.True(t, IsMarkupSupported(SystemMarkupDefault))
+	assert.True(t, IsMarkupSupported(SystemMarkupPlainText))
+	assert.True(t, IsMarkupSupported(SystemMarkupMarkdown))
+	assert.False(t, IsMarkupSupported(""))
+	assert.False(t, IsMarkupSupported("foo"))
 }

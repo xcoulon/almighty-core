@@ -26,9 +26,9 @@ import (
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
+	"github.com/almighty/almighty-core/markup"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/path"
-	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/space"
@@ -853,7 +853,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyLegacyDescription() {
 	require.NotNil(s.T(), updatedWI)
 	assert.Equal(s.T(), expectedDescription, updatedWI.Data.Attributes[workitem.SystemDescription])
 	assert.Equal(s.T(), expectedRenderedDescription, updatedWI.Data.Attributes[workitem.SystemDescriptionRendered])
-	assert.Equal(s.T(), rendering.SystemMarkupDefault, updatedWI.Data.Attributes[workitem.SystemDescriptionMarkup])
+	assert.Equal(s.T(), markup.SystemMarkupDefault, updatedWI.Data.Attributes[workitem.SystemDescriptionMarkup])
 }
 
 // fixing https://github.com/almighty/almighty-core/issues/986
@@ -862,8 +862,8 @@ func (s *WorkItem2Suite) TestWI2UpdateDescriptionAndMarkup() {
 	modifiedDescription := "# Description is modified"
 	expectedDescription := "# Description is modified"
 	expectedRenderedDescription := "<h1>Description is modified</h1>\n"
-	modifiedMarkup := rendering.SystemMarkupMarkdown
-	expectedMarkup := rendering.SystemMarkupMarkdown
+	modifiedMarkup := markup.SystemMarkupMarkdown
+	expectedMarkup := markup.SystemMarkupMarkdown
 	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription
 	s.minimumPayload.Data.Attributes[workitem.SystemDescriptionMarkup] = modifiedMarkup
 
@@ -876,7 +876,7 @@ func (s *WorkItem2Suite) TestWI2UpdateDescriptionAndMarkup() {
 
 func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithoutMarkup() {
 	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
-	modifiedDescription := rendering.NewMarkupContentFromLegacy("Only Description is modified")
+	modifiedDescription := markup.NewMarkupContentFromLegacy("Only Description is modified")
 	expectedDescription := "Only Description is modified"
 	expectedRenderedDescription := "Only Description is modified"
 	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription.ToMap()
@@ -884,12 +884,12 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithoutMarkup() {
 	require.NotNil(s.T(), updatedWI)
 	assert.Equal(s.T(), expectedDescription, updatedWI.Data.Attributes[workitem.SystemDescription])
 	assert.Equal(s.T(), expectedRenderedDescription, updatedWI.Data.Attributes[workitem.SystemDescriptionRendered])
-	assert.Equal(s.T(), rendering.SystemMarkupDefault, updatedWI.Data.Attributes[workitem.SystemDescriptionMarkup])
+	assert.Equal(s.T(), markup.SystemMarkupDefault, updatedWI.Data.Attributes[workitem.SystemDescriptionMarkup])
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithMarkup() {
 	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
-	modifiedDescription := rendering.NewMarkupContent("Only Description is modified", rendering.SystemMarkupMarkdown)
+	modifiedDescription := markup.NewMarkupContent("Only Description is modified", markup.SystemMarkupMarkdown)
 	expectedDescription := "Only Description is modified"
 	expectedRenderedDescription := "<p>Only Description is modified</p>\n"
 	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription.ToMap()
@@ -898,7 +898,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithMarkup() {
 	require.NotNil(s.T(), updatedWI)
 	assert.Equal(s.T(), expectedDescription, updatedWI.Data.Attributes[workitem.SystemDescription])
 	assert.Equal(s.T(), expectedRenderedDescription, updatedWI.Data.Attributes[workitem.SystemDescriptionRendered])
-	assert.Equal(s.T(), rendering.SystemMarkupMarkdown, updatedWI.Data.Attributes[workitem.SystemDescriptionMarkup])
+	assert.Equal(s.T(), markup.SystemMarkupMarkdown, updatedWI.Data.Attributes[workitem.SystemDescriptionMarkup])
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
@@ -1030,7 +1030,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithLegacyDescription() {
 	// for now, we keep the legacy format in the output
 	assert.Equal(s.T(), "Description", wi.Data.Attributes[workitem.SystemDescription])
 	assert.Equal(s.T(), "Description", wi.Data.Attributes[workitem.SystemDescriptionRendered])
-	assert.Equal(s.T(), rendering.SystemMarkupDefault, wi.Data.Attributes[workitem.SystemDescriptionMarkup])
+	assert.Equal(s.T(), markup.SystemMarkupDefault, wi.Data.Attributes[workitem.SystemDescriptionMarkup])
 }
 
 // TestWI2SuccessCreateWorkItemWithDescription verifies that the `workitem.SystemDescription` attribute is set, as well as its pair workitem.SystemDescriptionMarkup when the work item description is provided
@@ -1039,7 +1039,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndMarkup() 
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Attributes[workitem.SystemDescription] = rendering.NewMarkupContent("Description", rendering.SystemMarkupMarkdown)
+	c.Data.Attributes[workitem.SystemDescription] = markup.NewMarkupContent("Description", markup.SystemMarkupMarkdown)
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 
 	// when
@@ -1051,7 +1051,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndMarkup() 
 	// for now, we keep the legacy format in the output
 	assert.Equal(s.T(), "Description", wi.Data.Attributes[workitem.SystemDescription])
 	assert.Equal(s.T(), "<p>Description</p>\n", wi.Data.Attributes[workitem.SystemDescriptionRendered])
-	assert.Equal(s.T(), rendering.SystemMarkupMarkdown, wi.Data.Attributes[workitem.SystemDescriptionMarkup])
+	assert.Equal(s.T(), markup.SystemMarkupMarkdown, wi.Data.Attributes[workitem.SystemDescriptionMarkup])
 }
 
 // TestWI2SuccessCreateWorkItemWithDescription verifies that the `workitem.SystemDescription` attribute is set as a MarkupContent element
@@ -1060,7 +1060,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndNoMarkup(
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Attributes[workitem.SystemDescription] = rendering.NewMarkupContentFromLegacy("Description")
+	c.Data.Attributes[workitem.SystemDescription] = markup.NewMarkupContentFromLegacy("Description")
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 
 	// when
@@ -1072,7 +1072,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndNoMarkup(
 	// for now, we keep the legacy format in the output
 	assert.Equal(s.T(), "Description", wi.Data.Attributes[workitem.SystemDescription])
 	assert.Equal(s.T(), "Description", wi.Data.Attributes[workitem.SystemDescriptionRendered])
-	assert.Equal(s.T(), rendering.SystemMarkupDefault, wi.Data.Attributes[workitem.SystemDescriptionMarkup])
+	assert.Equal(s.T(), markup.SystemMarkupDefault, wi.Data.Attributes[workitem.SystemDescriptionMarkup])
 }
 
 // TestWI2SuccessCreateWorkItemWithDescription verifies that the `workitem.SystemDescription` attribute is set, as well as its pair workitem.SystemDescriptionMarkup when the work item description is provided
@@ -1081,7 +1081,7 @@ func (s *WorkItem2Suite) TestWI2FailCreateWorkItemWithDescriptionAndUnsupportedM
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Attributes[workitem.SystemDescription] = rendering.NewMarkupContent("Description", "foo")
+	c.Data.Attributes[workitem.SystemDescription] = markup.NewMarkupContent("Description", "foo")
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 
 	// when/then
@@ -2117,7 +2117,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithPl
 	// given
 	c := minimumRequiredCreatePayload()
 	title := "<img src=x onerror=alert('title') />"
-	description := rendering.NewMarkupContent("<img src=x onerror=alert('description') />", rendering.SystemMarkupPlainText)
+	description := markup.NewMarkupContent("<img src=x onerror=alert('description') />", markup.SystemMarkupPlainText)
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemDescription] = description
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
@@ -2136,7 +2136,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithMa
 	// given
 	c := minimumRequiredCreatePayload()
 	title := "<img src=x onerror=alert('title') />"
-	description := rendering.NewMarkupContent("<img src=x onerror=alert('description') />", rendering.SystemMarkupMarkdown)
+	description := markup.NewMarkupContent("<img src=x onerror=alert('description') />", markup.SystemMarkupMarkdown)
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemDescription] = description
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew

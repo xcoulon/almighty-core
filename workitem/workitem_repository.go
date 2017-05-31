@@ -11,7 +11,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 
 	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/rendering"
+	"github.com/almighty/almighty-core/markup"
 
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -479,8 +479,8 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 			return nil, errors.NewBadParameterError(fieldName, fieldValue)
 		}
 		if fieldName == SystemDescription && wi.Fields[fieldName] != nil {
-			description := rendering.NewMarkupContentFromMap(wi.Fields[fieldName].(map[string]interface{}))
-			if !rendering.IsMarkupSupported(description.Markup) {
+			description := markup.NewMarkupContentFromMap(wi.Fields[fieldName].(map[string]interface{}))
+			if !markup.IsMarkupSupported(description.Markup) {
 				return nil, errors.NewBadParameterError(fieldName, fieldValue)
 			}
 		}
