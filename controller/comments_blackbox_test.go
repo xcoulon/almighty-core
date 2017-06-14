@@ -1,6 +1,7 @@
 package controller_test
 
 import (
+	"context"
 	"fmt"
 	"html"
 	"net/http"
@@ -112,9 +113,9 @@ func (s *CommentsSuite) createWorkItem(identity account.Identity) string {
 	}
 	userSvc, workitemCtrl, _, _ := s.securedControllers(identity)
 	_, wi := test.CreateWorkitemCreated(s.T(), userSvc.Context, userSvc, workitemCtrl, *createWorkitemPayload.Data.Relationships.Space.Data.ID, &createWorkitemPayload)
-	wID := *wi.Data.ID
-	s.T().Log(fmt.Sprintf("Created workitem with id %v", wID))
-	return wID
+	wiID := *wi.Data.ID
+	s.T().Log(fmt.Sprintf("Created workitem with id %v", wiID))
+	return wiID
 }
 
 func (s *CommentsSuite) newCreateWorkItemCommentsPayload(body string, markup *string) *app.CreateWorkItemCommentsPayload {
@@ -142,10 +143,10 @@ func (s *CommentsSuite) newUpdateCommentsPayload(body string, markup *string) *a
 }
 
 // createWorkItemComment creates a workitem comment that will be used to perform the comment operations during the tests.
-func (s *CommentsSuite) createWorkItemComment(identity account.Identity, wID string, body string, markup *string) app.CommentSingle {
+func (s *CommentsSuite) createWorkItemComment(identity account.Identity, wiID string, body string, markup *string) app.CommentSingle {
 	createWorkItemCommentPayload := s.newCreateWorkItemCommentsPayload(body, markup)
 	userSvc, _, workitemCommentsCtrl, _ := s.securedControllers(identity)
-	_, c := test.CreateWorkItemCommentsOK(s.T(), userSvc.Context, userSvc, workitemCommentsCtrl, space.SystemSpace, wID, createWorkItemCommentPayload)
+	_, c := test.CreateWorkItemCommentsOK(s.T(), userSvc.Context, userSvc, workitemCommentsCtrl, space.SystemSpace, wiID, createWorkItemCommentPayload)
 	s.T().Log(fmt.Sprintf("Created comment with id %v", *c.Data.ID))
 	return *c
 }
@@ -182,8 +183,8 @@ func convertCommentToModel(c app.CommentSingle) comment.Comment {
 
 func (s *CommentsSuite) TestShowCommentWithoutAuthOK() {
 	// given
-	wID := s.createWorkItem(s.testIdentity)
-	c := s.createWorkItemComment(s.testIdentity, wID, "body", &markdownMarkup)
+	wiID := s.createWorkItem(s.testIdentity)
+	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &markdownMarkup)
 	// when
 	userSvc, commentsCtrl := s.unsecuredController()
 	_, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, nil, nil)
@@ -193,8 +194,8 @@ func (s *CommentsSuite) TestShowCommentWithoutAuthOK() {
 
 func (s *CommentsSuite) TestShowCommentWithoutAuthOKUsingExpiredIfModifiedSinceHeader() {
 	// given
-	wID := s.createWorkItem(s.testIdentity)
-	c := s.createWorkItemComment(s.testIdentity, wID, "body", &markdownMarkup)
+	wiID := s.createWorkItem(s.testIdentity)
+	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &markdownMarkup)
 	// when
 	ifModifiedSince := app.ToHTTPTime(c.Data.Attributes.UpdatedAt.Add(-1 * time.Hour))
 	userSvc, commentsCtrl := s.unsecuredController()
@@ -206,8 +207,8 @@ func (s *CommentsSuite) TestShowCommentWithoutAuthOKUsingExpiredIfModifiedSinceH
 
 func (s *CommentsSuite) TestShowCommentWithoutAuthOKUsingExpiredIfNoneMatchHeader() {
 	// given
-	wID := s.createWorkItem(s.testIdentity)
-	c := s.createWorkItemComment(s.testIdentity, wID, "body", &markdownMarkup)
+	wiID := s.createWorkItem(s.testIdentity)
+	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &markdownMarkup)
 	// when
 	ifNoneMatch := "foo"
 	userSvc, commentsCtrl := s.unsecuredController()
@@ -219,8 +220,8 @@ func (s *CommentsSuite) TestShowCommentWithoutAuthOKUsingExpiredIfNoneMatchHeade
 
 func (s *CommentsSuite) TestShowCommentWithoutAuthNotModifiedUsingIfModifiedSinceHeader() {
 	// given
-	wID := s.createWorkItem(s.testIdentity)
-	c := s.createWorkItemComment(s.testIdentity, wID, "body", &markdownMarkup)
+	wiID := s.createWorkItem(s.testIdentity)
+	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &markdownMarkup)
 	// when
 	ifModifiedSince := app.ToHTTPTime(*c.Data.Attributes.UpdatedAt)
 	userSvc, commentsCtrl := s.unsecuredController()
@@ -231,8 +232,8 @@ func (s *CommentsSuite) TestShowCommentWithoutAuthNotModifiedUsingIfModifiedSinc
 
 func (s *CommentsSuite) TestShowCommentWithoutAuthNotModifiedUsingIfNoneMatchHeader() {
 	// given
-	wID := s.createWorkItem(s.testIdentity)
-	c := s.createWorkItemComment(s.testIdentity, wID, "body", &markdownMarkup)
+	wiID := s.createWorkItem(s.testIdentity)
+	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &markdownMarkup)
 	// when
 	commentModel := convertCommentToModel(c)
 	ifNoneMatch := app.GenerateEntityTag(commentModel)
@@ -244,8 +245,8 @@ func (s *CommentsSuite) TestShowCommentWithoutAuthNotModifiedUsingIfNoneMatchHea
 
 func (s *CommentsSuite) TestShowCommentWithoutAuthWithMarkup() {
 	// given
-	wID := s.createWorkItem(s.testIdentity)
-	c := s.createWorkItemComment(s.testIdentity, wID, "body", nil)
+	wiID := s.createWorkItem(s.testIdentity)
+	c := s.createWorkItemComment(s.testIdentity, wiID, "body", nil)
 	// when
 	userSvc, commentsCtrl := s.unsecuredController()
 	_, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, nil, nil)
@@ -255,8 +256,8 @@ func (s *CommentsSuite) TestShowCommentWithoutAuthWithMarkup() {
 
 func (s *CommentsSuite) TestShowCommentWithAuth() {
 	// given
-	wID := s.createWorkItem(s.testIdentity)
-	c := s.createWorkItemComment(s.testIdentity, wID, "body", &plaintextMarkup)
+	wiID := s.createWorkItem(s.testIdentity)
+	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup)
 	// when
 	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
 	_, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, nil, nil)
@@ -266,8 +267,8 @@ func (s *CommentsSuite) TestShowCommentWithAuth() {
 
 func (s *CommentsSuite) TestShowCommentWithEscapedScriptInjection() {
 	// given
-	wID := s.createWorkItem(s.testIdentity)
-	c := s.createWorkItemComment(s.testIdentity, wID, "<img src=x onerror=alert('body') />", &plaintextMarkup)
+	wiID := s.createWorkItem(s.testIdentity)
+	c := s.createWorkItemComment(s.testIdentity, wiID, "<img src=x onerror=alert('body') />", &plaintextMarkup)
 	// when
 	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
 	_, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID, nil, nil)
@@ -277,8 +278,8 @@ func (s *CommentsSuite) TestShowCommentWithEscapedScriptInjection() {
 
 func (s *CommentsSuite) TestUpdateCommentWithoutAuth() {
 	// given
-	wID := s.createWorkItem(s.testIdentity)
-	c := s.createWorkItemComment(s.testIdentity, wID, "body", &plaintextMarkup)
+	wiID := s.createWorkItem(s.testIdentity)
+	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup)
 	// when
 	updateCommentPayload := s.newUpdateCommentsPayload("updated body", &markdownMarkup)
 	userSvc, commentsCtrl := s.unsecuredController()
@@ -287,8 +288,8 @@ func (s *CommentsSuite) TestUpdateCommentWithoutAuth() {
 
 func (s *CommentsSuite) TestUpdateCommentWithSameUserWithOtherMarkup() {
 	// given
-	wID := s.createWorkItem(s.testIdentity)
-	c := s.createWorkItemComment(s.testIdentity, wID, "body", &plaintextMarkup)
+	wiID := s.createWorkItem(s.testIdentity)
+	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup)
 	// when
 	updateCommentPayload := s.newUpdateCommentsPayload("updated body", &markdownMarkup)
 	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
@@ -298,8 +299,8 @@ func (s *CommentsSuite) TestUpdateCommentWithSameUserWithOtherMarkup() {
 
 func (s *CommentsSuite) TestUpdateCommentWithSameUserWithNilMarkup() {
 	// given
-	wID := s.createWorkItem(s.testIdentity)
-	c := s.createWorkItemComment(s.testIdentity, wID, "body", &plaintextMarkup)
+	wiID := s.createWorkItem(s.testIdentity)
+	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup)
 	// when
 	updateCommentPayload := s.newUpdateCommentsPayload("updated body", nil)
 	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
@@ -309,8 +310,8 @@ func (s *CommentsSuite) TestUpdateCommentWithSameUserWithNilMarkup() {
 
 func (s *CommentsSuite) TestUpdateCommentWithOtherUser() {
 	// given
-	wID := s.createWorkItem(s.testIdentity)
-	c := s.createWorkItemComment(s.testIdentity, wID, "body", &plaintextMarkup)
+	wiID := s.createWorkItem(s.testIdentity)
+	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup)
 	// when
 	updatedCommentBody := "An updated comment"
 	updateCommentPayload := &app.UpdateCommentsPayload{
@@ -328,24 +329,70 @@ func (s *CommentsSuite) TestUpdateCommentWithOtherUser() {
 
 func (s *CommentsSuite) TestDeleteCommentWithSameAuthenticatedUser() {
 	// given
-	wID := s.createWorkItem(s.testIdentity)
-	c := s.createWorkItemComment(s.testIdentity, wID, "body", &plaintextMarkup)
+	wiID := s.createWorkItem(s.testIdentity)
+	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup)
 	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
+	// when/then
 	test.DeleteCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID)
 }
 
 func (s *CommentsSuite) TestDeleteCommentWithoutAuth() {
 	// given
-	wID := s.createWorkItem(s.testIdentity)
-	c := s.createWorkItemComment(s.testIdentity, wID, "body", &plaintextMarkup)
+	wiID := s.createWorkItem(s.testIdentity)
+	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup)
 	userSvc, commentsCtrl := s.unsecuredController()
+	// when/then
 	test.DeleteCommentsUnauthorized(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID)
 }
 
 func (s *CommentsSuite) TestDeleteCommentWithOtherAuthenticatedUser() {
 	// given
-	wID := s.createWorkItem(s.testIdentity)
-	c := s.createWorkItemComment(s.testIdentity, wID, "body", &plaintextMarkup)
+	wiID := s.createWorkItem(s.testIdentity)
+	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup)
 	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity2)
+	// when/then
 	test.DeleteCommentsForbidden(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID)
+}
+
+func (s *CommentsSuite) TestAddCommentOnWorkItem() {
+	// given a work item with a comment
+	wiID := s.createWorkItem(s.testIdentity)
+	workitemRepo := workitem.NewWorkItemRepository(s.DB)
+	wi, err := workitemRepo.LoadByID(context.Background(), wiID)
+	require.Nil(s.T(), err)
+	commentedAt, ok := wi.Fields[workitem.SystemCommentedAt]
+	require.True(s.T(), ok)
+	require.Nil(s.T(), commentedAt)
+	// when
+	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup)
+	// then load the work item again and verify the timestamps
+	wi, err = workitemRepo.LoadByID(context.Background(), wiID)
+	require.Nil(s.T(), err)
+	commentedAt, ok = wi.Fields[workitem.SystemCommentedAt]
+	require.True(s.T(), ok)
+	require.NotNil(s.T(), commentedAt)
+	assert.Equal(s.T(), c.Data.Attributes.CreatedAt.UTC(), commentedAt.(*time.Time).UTC())
+}
+
+func (s *CommentsSuite) TestAddAndRemoveCommentOnWorkItem() {
+	// given a work item with a (soft) delete comment
+	wiID := s.createWorkItem(s.testIdentity)
+	workitemRepo := workitem.NewWorkItemRepository(s.DB)
+	wi, err := workitemRepo.LoadByID(context.Background(), wiID)
+	require.Nil(s.T(), err)
+	commentedAt, ok := wi.Fields[workitem.SystemCommentedAt]
+	require.True(s.T(), ok)
+	require.Nil(s.T(), commentedAt)
+	// when
+	c := s.createWorkItemComment(s.testIdentity, wiID, "body", &plaintextMarkup)
+	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
+	time.Sleep(1 * time.Second)
+	test.DeleteCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, *c.Data.ID)
+	// then load the work item again and verify the timestamps
+	wi, err = workitemRepo.LoadByID(context.Background(), wiID)
+	require.Nil(s.T(), err)
+	commentedAt, ok = wi.Fields[workitem.SystemCommentedAt]
+	require.True(s.T(), ok)
+	require.NotNil(s.T(), commentedAt)
+	assert.True(s.T(), commentedAt.(*time.Time).After(*c.Data.Attributes.CreatedAt))
 }
