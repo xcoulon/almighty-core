@@ -433,7 +433,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, up
 	wiStorage.Fields = Fields{}
 	wiStorage.ExecutionOrder = updatedWorkItem.Fields[SystemOrder].(float64)
 	for fieldName, fieldDef := range wiType.Fields {
-		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt || fieldName == SystemOrder {
+		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt || fieldName == SystemUpdatedAt || fieldName == SystemOrder {
 			continue
 		}
 		fieldValue := updatedWorkItem.Fields[fieldName]
