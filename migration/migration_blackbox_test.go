@@ -341,9 +341,10 @@ func testMigration61(t *testing.T) {
 func testMigration62(t *testing.T) {
 	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+18)], (initialMigratedVersion + 18))
 	assert.Nil(t, runSQLscript(sqlDB, "062-workitem-related-changes.sql"))
-	var commentedAt time.Time
 	var createdAt time.Time
 	var deletedAt time.Time
+	var commentedAt time.Time
+	// var linkedAt time.Time
 	// work item 62001 was commented
 	row := sqlDB.QueryRow("SELECT wi.commented_at, c.created_at FROM work_items wi left join comments c on c.parent_id::bigint = wi.id where wi.id = 62001")
 	err := row.Scan(&commentedAt, &createdAt)

@@ -490,7 +490,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 	}
 	fields[SystemCreator] = creatorID.String()
 	for fieldName, fieldDef := range wiType.Fields {
-		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt || fieldName == SystemCommentedAt || fieldName == SystemOrder {
+		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt || fieldName == SystemCommentedAt || fieldName == SystemLinkedAt || fieldName == SystemOrder {
 			continue
 		}
 		fieldValue := fields[fieldName]
@@ -538,6 +538,9 @@ func ConvertWorkItemStorageToModel(wiType *WorkItemType, wi *WorkItemStorage) (*
 	}
 	if _, ok := wiType.Fields[SystemCommentedAt]; ok {
 		result.Fields[SystemCommentedAt] = wi.CommentedAt
+	}
+	if _, ok := wiType.Fields[SystemLinkedAt]; ok {
+		result.Fields[SystemLinkedAt] = wi.LinkedAt
 	}
 	if _, ok := wiType.Fields[SystemOrder]; ok {
 		result.Fields[SystemOrder] = wi.ExecutionOrder

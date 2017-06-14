@@ -28,7 +28,7 @@ type WorkItemStorage struct {
 	// optional timestamp of the latest addition/removal of a comment on this workitem
 	CommentedAt *time.Time `sql:"column:commented_at"`
 	// timestamp of the latest addition/removal of a comment on this workitem
-	LinkedAt time.Time `sql:"column:linked_at"`
+	LinkedAt *time.Time `sql:"column:linked_at"`
 }
 
 const (
