@@ -122,7 +122,7 @@ var workItemLinkList = JSONList(
 //
 // ############################################################################
 
-var _ = a.Resource("work_item_link", func() {
+var _ = a.Resource("work_item_links", func() {
 	a.BasePath("/workitemlinks")
 	a.Action("show", showWorkItemLink)
 	a.Action("create", createWorkItemLink)
@@ -132,7 +132,7 @@ var _ = a.Resource("work_item_link", func() {
 
 var _ = a.Resource("work_item_relationships_links", func() {
 	a.BasePath("/relationships/links")
-	a.Parent("workitem")
+	a.Parent("work_item")
 	a.Action("list", func() {
 		listWorkItemLinks()
 		a.Description("List work item links associated with the given work item (either as source or as target work item).")

@@ -145,7 +145,7 @@ var workItemLinkTypeList = JSONList(
 //
 // ############################################################################
 
-var _ = a.Resource("work_item_link_type", func() {
+var _ = a.Resource("work_item_link_types", func() {
 	a.BasePath("/workitemlinktypes")
 	a.Parent("space")
 

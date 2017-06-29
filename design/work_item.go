@@ -101,9 +101,8 @@ var workItemReorder = Reorder(
 	workItem,
 	position)
 
-// new version of "list" for migration
-var _ = a.Resource("workitem", func() {
-	a.Parent("space")
+// endpoints that DO NOT depend on the space id (ie, when the work item ID is specified in the URL, there's no need to pass the space ID)
+var _ = a.Resource("work_item", func() {
 	a.BasePath("/workitems")
 	a.Action("show", func() {
 		a.Routing(
@@ -211,6 +210,50 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.Forbidden, JSONAPIErrors)
 	})
+})
+
+// endpoints that depend on the space id
+var _ = a.Resource("work_items", func() {
+	a.Parent("space")
+	a.BasePath("/workitems")
+	a.Action("list", func() {
+		a.Routing(
+			a.GET(""),
+		)
+		a.Description("List work items.")
+		a.Params(func() {
+			a.Param("filter", d.String, "a query language expression restricting the set of found work items")
+			a.Param("page[offset]", d.String, "Paging start position")
+			a.Param("page[limit]", d.Integer, "Paging size")
+			a.Param("filter[assignee]", d.String, "Work Items assigned to the given user")
+			a.Param("filter[iteration]", d.String, "IterationID to filter work items")
+			a.Param("filter[workitemtype]", d.UUID, "ID of work item type to filter work items by")
+			a.Param("filter[area]", d.String, "AreaID to filter work items")
+			a.Param("filter[workitemstate]", d.String, "work item state to filter work items by")
+			a.Param("filter[parentexists]", d.Boolean, "if false list work items without any parent")
+		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, workItemList)
+		a.Response(d.NotModified)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+
+	a.Action("create", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.POST(""),
+		)
+		a.Description("create work item with type and id.")
+		a.Payload(workItemSingle)
+		a.Response(d.Created, "/workitems/.*", func() {
+			a.Media(workItemSingle)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+	})
+
 	a.Action("reorder", func() {
 		a.Security("jwt")
 		a.Routing(

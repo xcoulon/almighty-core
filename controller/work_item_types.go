@@ -20,8 +20,8 @@ const (
 	targetLinkTypesRouteEnd = "/target-link-types"
 )
 
-// WorkitemtypeController implements the workitemtype resource.
-type WorkitemtypeController struct {
+// WorkItemTypesController implements the workitemtype resource.
+type WorkItemTypesController struct {
 	*goa.Controller
 	db     application.DB
 	config WorkItemControllerConfiguration
@@ -32,16 +32,16 @@ type WorkItemControllerConfiguration interface {
 }
 
 // NewWorkitemtypeController creates a workitemtype controller.
-func NewWorkitemtypeController(service *goa.Service, db application.DB, config WorkItemControllerConfiguration) *WorkitemtypeController {
-	return &WorkitemtypeController{
-		Controller: service.NewController("WorkitemtypeController"),
+func NewWorkitemtypeController(service *goa.Service, db application.DB, config WorkItemControllerConfiguration) *WorkItemTypesController {
+	return &WorkItemTypesController{
+		Controller: service.NewController("WorkItemTypesController"),
 		db:         db,
 		config:     config,
 	}
 }
 
 // Show runs the show action.
-func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
+func (c *WorkItemTypesController) Show(ctx *app.ShowWorkitemtypeContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		witModel, err := appl.WorkItemTypes().Load(ctx.Context, ctx.SpaceID, ctx.WitID)
 		if err != nil {
@@ -56,7 +56,7 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 }
 
 // Create runs the create action.
-func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) error {
+func (c *WorkItemTypesController) Create(ctx *app.CreateWorkitemtypeContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		var fields = map[string]app.FieldDefinition{}
 		for key, fd := range ctx.Payload.Data.Attributes.Fields {
@@ -92,7 +92,7 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 }
 
 // List runs the list action
-func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
+func (c *WorkItemTypesController) List(ctx *app.ListWorkitemtypeContext) error {
 	log.Debug(ctx, map[string]interface{}{"space_id": ctx.SpaceID}, "Listing work item types per space")
 	start, limit, err := parseLimit(ctx.Page)
 	if err != nil {

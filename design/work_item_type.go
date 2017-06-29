@@ -110,7 +110,7 @@ var workItemTypeSingle = JSONSingle(
 	workItemTypeData,
 	workItemTypeLinks)
 
-var _ = a.Resource("workitemtype", func() {
+var _ = a.Resource("work_item_types", func() {
 	a.Parent("space")
 	a.BasePath("/workitemtypes")
 	a.Action("show", func() {

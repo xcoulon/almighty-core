@@ -145,7 +145,7 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 	}
 
 	s.T().Log("Creating 'animal' work item type...")
-	responseWriter, wi := test.CreateWorkitemtypeCreated(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, &payload)
+	responseWriter, wi := test.CreateWorkitemstypeCreated(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, &payload)
 	require.NotNil(s.T(), wi)
 	s.T().Log("'animal' work item type created.")
 	return responseWriter, wi
@@ -184,7 +184,7 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 		},
 	}
 
-	responseWriter, wi := test.CreateWorkitemtypeCreated(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, &payload)
+	responseWriter, wi := test.CreateWorkitemstypeCreated(s.T(), nil, nil, s.typeCtrl, space.SystemSpace, &payload)
 	require.NotNil(s.T(), wi)
 	return responseWriter, wi
 }

@@ -165,7 +165,7 @@ var _ = a.Resource("comments", func() {
 })
 
 var _ = a.Resource("work_item_comments", func() {
-	a.Parent("workitem")
+	a.Parent("work_item")
 
 	a.Action("list", func() {
 		a.Routing(

@@ -12,16 +12,16 @@ import (
 	//uuid "github.com/satori/go.uuid"
 )
 
-// WorkItemLinkCategoryController implements the work-item-link-category resource.
-type WorkItemLinkCategoryController struct {
+// WorkItemLinkCategoriesController implements the work-item-link-category resource.
+type WorkItemLinkCategoriesController struct {
 	*goa.Controller
 	db application.DB
 }
 
-// NewWorkItemLinkCategoryController creates a WorkItemLinkCategoryController.
-func NewWorkItemLinkCategoryController(service *goa.Service, db application.DB) *WorkItemLinkCategoryController {
-	return &WorkItemLinkCategoryController{
-		Controller: service.NewController("WorkItemLinkCategoryController"),
+// NewWorkItemLinkCategoryController creates a WorkItemLinkCategoriesController.
+func NewWorkItemLinkCategoryController(service *goa.Service, db application.DB) *WorkItemLinkCategoriesController {
+	return &WorkItemLinkCategoriesController{
+		Controller: service.NewController("WorkItemLinkCategoriesController"),
 		db:         db,
 	}
 }
@@ -49,7 +49,7 @@ func enrichLinkCategoryList(ctx *workItemLinkContext, list *app.WorkItemLinkCate
 }
 
 // Create runs the create action.
-func (c *WorkItemLinkCategoryController) Create(ctx *app.CreateWorkItemLinkCategoryContext) error {
+func (c *WorkItemLinkCategoriesController) Create(ctx *app.CreateWorkItemLinkCategoryContext) error {
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
@@ -74,7 +74,7 @@ func (c *WorkItemLinkCategoryController) Create(ctx *app.CreateWorkItemLinkCateg
 }
 
 // Show runs the show action.
-func (c *WorkItemLinkCategoryController) Show(ctx *app.ShowWorkItemLinkCategoryContext) error {
+func (c *WorkItemLinkCategoriesController) Show(ctx *app.ShowWorkItemLinkCategoryContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		modelCategory, err := appl.WorkItemLinkCategories().Load(ctx.Context, ctx.ID)
 		if err != nil {
@@ -93,7 +93,7 @@ func (c *WorkItemLinkCategoryController) Show(ctx *app.ShowWorkItemLinkCategoryC
 }
 
 // List runs the list action.
-func (c *WorkItemLinkCategoryController) List(ctx *app.ListWorkItemLinkCategoryContext) error {
+func (c *WorkItemLinkCategoriesController) List(ctx *app.ListWorkItemLinkCategoryContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		modelCategories, err := appl.WorkItemLinkCategories().List(ctx.Context)
 		if err != nil {
@@ -124,7 +124,7 @@ func (c *WorkItemLinkCategoryController) List(ctx *app.ListWorkItemLinkCategoryC
 }
 
 // Delete runs the delete action.
-func (c *WorkItemLinkCategoryController) Delete(ctx *app.DeleteWorkItemLinkCategoryContext) error {
+func (c *WorkItemLinkCategoriesController) Delete(ctx *app.DeleteWorkItemLinkCategoryContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		err := appl.WorkItemLinkCategories().Delete(ctx.Context, ctx.ID)
 		if err != nil {
@@ -136,7 +136,7 @@ func (c *WorkItemLinkCategoryController) Delete(ctx *app.DeleteWorkItemLinkCateg
 }
 
 // Update runs the update action.
-func (c *WorkItemLinkCategoryController) Update(ctx *app.UpdateWorkItemLinkCategoryContext) error {
+func (c *WorkItemLinkCategoriesController) Update(ctx *app.UpdateWorkItemLinkCategoryContext) error {
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))

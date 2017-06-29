@@ -97,7 +97,7 @@ func (s *WorkItemSuite) SetupTest() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	log.Info(nil, nil, "Creating work item during test setup...")
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	log.Info(nil, nil, "Creating work item during test setup: done")
 	s.wi = wi.Data
 	s.minimumPayload = getMinimumRequiredUpdatePayload(s.wi)
@@ -132,7 +132,7 @@ func (s *WorkItemSuite) TestCreateWI() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	// when
-	_, created := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, created := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	// then
 	require.NotNil(s.T(), created.Data.ID)
 	assert.NotEmpty(s.T(), *created.Data.ID)
@@ -149,10 +149,10 @@ func (s *WorkItemSuite) TestReorderWorkitemAboveOK() {
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 
 	// This workitem is created but not used to clearly test that the reorder workitem is moved between **two** workitems i.e. result1 and result2 and not to the **top** of the list
-	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 
-	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
-	_, result3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result2 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result3 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	payload2 := minimumRequiredReorderPayload()
 
 	var dataArray []*app.WorkItem // dataArray contains the workitem(s) that have to be reordered
@@ -174,10 +174,10 @@ func (s *WorkItemSuite) TestReorderWorkitemConflict() {
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 
 	// This workitem is created but not used to clearly test that the reorder workitem is moved between **two** workitems i.e. result1 and result2 and not to the **top** of the list
-	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 
-	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
-	_, result3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result2 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result3 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	payload2 := minimumRequiredReorderPayload()
 
 	var dataArray []*app.WorkItem // dataArray contains the workitem(s) that have to be reordered
@@ -199,11 +199,11 @@ func (s *WorkItemSuite) TestReorderWorkitemBelowOK() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 
-	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
-	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result1 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result2 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 
 	// This workitem is created but not used to clearly demonstrate that the reorder workitem is moved between **two** workitems i.e. result2 and result3 and not to the **bottom** of the list
-	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 
 	payload2 := minimumRequiredReorderPayload()
 
@@ -228,8 +228,8 @@ func (s *WorkItemSuite) TestReorderWorkitemTopOK() {
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 	// There are two workitems in the list -> result1 and result2
 	// In this case, we reorder result2 to the top of the list i.e. above result1
-	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
-	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result1 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	payload2 := minimumRequiredReorderPayload()
 
 	var dataArray []*app.WorkItem // dataArray contains the workitem(s) that have to be reordered
@@ -252,8 +252,8 @@ func (s *WorkItemSuite) TestReorderWorkitemBottomOK() {
 
 	// There are two workitems in the list -> result1 and result2
 	// In this case, we reorder result1 to the bottom of the list i.e. below result2
-	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
-	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result2 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	payload2 := minimumRequiredReorderPayload()
 
 	var dataArray []*app.WorkItem // dataArray contains the workitem(s) that have to be reordered
@@ -275,10 +275,10 @@ func (s *WorkItemSuite) TestReorderMultipleWorkitems() {
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
-	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
-	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
-	_, result3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
-	_, result4 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result2 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result3 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result4 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	payload2 := minimumRequiredReorderPayload()
 	var dataArray []*app.WorkItem // dataArray contains the workitems that have to be reordered
 	dataArray = append(dataArray, result3.Data, result4.Data)
@@ -302,7 +302,7 @@ func (s *WorkItemSuite) TestReorderWorkitemBadRequestOK() {
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
-	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result1 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	payload2 := minimumRequiredReorderPayload()
 
 	// This case gives empty dataArray as input
@@ -321,7 +321,7 @@ func (s *WorkItemSuite) TestReorderWorkitemNotFoundOK() {
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
-	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, result1 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	payload2 := minimumRequiredReorderPayload()
 
 	// This case gives id of workitem in position.ID which is not present in db as input
@@ -344,7 +344,7 @@ func (s *WorkItemSuite) TestUpdateWorkitemWithoutReorder() {
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 
 	// Update the workitem
 	wi.Data.Attributes[workitem.SystemTitle] = "Updated Test WI"
@@ -368,7 +368,7 @@ func (s *WorkItemSuite) TestCreateWorkItemWithoutContext() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	// when/then
-	test.CreateWorkitemUnauthorized(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemsUnauthorized(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 }
 
 func (s *WorkItemSuite) TestListByFields() {
@@ -376,7 +376,7 @@ func (s *WorkItemSuite) TestListByFields() {
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "run integration test"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
-	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workitemCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	// when
 	filter := "{\"system.title\":\"run integration test\"}"
 	offset := "0"
@@ -615,8 +615,8 @@ func minimumRequiredUpdatePayload() app.UpdateWorkitemPayload {
 	}
 }
 
-func minimumRequiredReorderPayload() app.ReorderWorkitemPayload {
-	return app.ReorderWorkitemPayload{
+func minimumRequiredReorderPayload() app.ReorderWorkitemsPayload {
+	return app.ReorderWorkitemsPayload{
 		Data: []*app.WorkItem{},
 		Position: &app.WorkItemReorderPosition{
 			ID: nil,
@@ -624,13 +624,13 @@ func minimumRequiredReorderPayload() app.ReorderWorkitemPayload {
 	}
 }
 
-func minimumRequiredCreateWithType(witID uuid.UUID) app.CreateWorkitemPayload {
+func minimumRequiredCreateWithType(witID uuid.UUID) app.CreateWorkitemsPayload {
 	c := minimumRequiredCreatePayload()
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, witID)
 	return c
 }
 
-func minimumRequiredCreateWithTypeAndSpace(witID uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemPayload {
+func minimumRequiredCreateWithTypeAndSpace(witID uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemsPayload {
 	c := minimumRequiredCreatePayload()
 	c.Data.Relationships.BaseType = newRelationBaseType(spaceID, witID)
 	return c
@@ -652,12 +652,12 @@ func newRelationBaseType(spaceID, wit uuid.UUID) *app.RelationBaseType {
 	}
 }
 
-func minimumRequiredCreatePayload() app.CreateWorkitemPayload {
+func minimumRequiredCreatePayload() app.CreateWorkitemsPayload {
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
 
-	return app.CreateWorkitemPayload{
+	return app.CreateWorkitemsPayload{
 		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{},
@@ -807,7 +807,7 @@ func (s *WorkItem2Suite) SetupTest() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	s.T().Log("Creating default WI in space#", payload.Data.Relationships.Space.Data.ID.String())
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wiCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wiCtrl, *payload.Data.Relationships.Space.Data.ID, &payload)
 	s.T().Log("Done creating default WI")
 	s.wi = wi.Data
 	s.minimumPayload = getMinimumRequiredUpdatePayload(s.wi)
@@ -850,7 +850,7 @@ func (s *WorkItem2Suite) TestWI2UpdateSetBaseType() {
 	c.Data.Attributes[workitem.SystemTitle] = "Test title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
-	_, created := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, created := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	assert.Equal(s.T(), created.Data.Relationships.BaseType.Data.ID, workitem.SystemBug)
 
 	u := minimumRequiredUpdatePayload()
@@ -1002,7 +1002,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItem() {
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// then
 	assert.NotNil(s.T(), wi.Data)
 	assert.NotNil(s.T(), wi.Data.ID)
@@ -1027,7 +1027,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithoutDescription() {
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// then
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.Attributes)
@@ -1047,7 +1047,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithLegacyDescription() {
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// then
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.Attributes)
@@ -1068,7 +1068,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndMarkup() 
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// then
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.Attributes)
@@ -1089,7 +1089,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndNoMarkup(
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// then
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.Attributes)
@@ -1110,7 +1110,7 @@ func (s *WorkItem2Suite) TestWI2FailCreateWorkItemWithDescriptionAndUnsupportedM
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 
 	// when/then
-	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	test.CreateWorkitemsBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 }
 
 func (s *WorkItem2Suite) TestWI2FailCreateMissingBaseType() {
@@ -1119,7 +1119,7 @@ func (s *WorkItem2Suite) TestWI2FailCreateMissingBaseType() {
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	// when/then
-	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	test.CreateWorkitemsBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 }
 
 func (s *WorkItem2Suite) TestWI2FailCreateWithAssigneeAsField() {
@@ -1132,7 +1132,7 @@ func (s *WorkItem2Suite) TestWI2FailCreateWithAssigneeAsField() {
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// then
 	assert.NotNil(s.T(), wi.Data)
 	assert.NotNil(s.T(), wi.Data.ID)
@@ -1148,7 +1148,7 @@ func (s *WorkItem2Suite) TestWI2FailCreateWithMissingTitle() {
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 
 	// when/then
-	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	test.CreateWorkitemsBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 }
 
 func (s *WorkItem2Suite) TestWI2FailCreateWithEmptyTitle() {
@@ -1158,7 +1158,7 @@ func (s *WorkItem2Suite) TestWI2FailCreateWithEmptyTitle() {
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	// when/then
-	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	test.CreateWorkitemsBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 }
 
 func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
@@ -1178,7 +1178,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
 			}},
 	}
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// then
 	assert.NotNil(s.T(), wi.Data)
 	assert.NotNil(s.T(), wi.Data.ID)
@@ -1203,7 +1203,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneesRelation() {
 		},
 	}
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// then
 	assert.NotNil(s.T(), wi.Data)
 	assert.NotNil(s.T(), wi.Data.ID)
@@ -1245,7 +1245,7 @@ func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
 		},
 	}
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// then
 	assert.NotNil(s.T(), wi.Data)
 	assert.NotNil(s.T(), wi.Data.ID)
@@ -1286,7 +1286,7 @@ func (s *WorkItem2Suite) TestWI2ListByNoAssigneeFilter() {
 	})
 
 	s.T().Run("work item with assignee", func(t *testing.T) {
-		_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+		_, wi := test.CreateWorkitemsCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 		assert.NotNil(t, wi.Data)
 		assert.NotNil(t, wi.Data.ID)
 		assert.NotNil(t, wi.Data.Type)
@@ -1321,7 +1321,7 @@ func (s *WorkItem2Suite) TestWI2ListByTypeFilter() {
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	// when
-	_, expected := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, expected := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// then
 	assert.NotNil(s.T(), expected.Data)
 	require.NotNil(s.T(), expected.Data.ID)
@@ -1341,7 +1341,7 @@ func (s *WorkItem2Suite) createWorkItem(title, state string) app.WorkItemSingle 
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = state
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.ID)
 	require.NotNil(s.T(), wi.Data.Type)
@@ -1446,7 +1446,7 @@ func (s *WorkItem2Suite) setupAreaWorkItem(createWorkItem bool) (uuid.UUID, stri
 		},
 	}
 	if createWorkItem {
-		_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+		_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 		require.NotNil(s.T(), wi)
 		require.NotNil(s.T(), wi.Data)
 		require.NotNil(s.T(), wi.Data.ID)
@@ -1548,7 +1548,7 @@ func (s *WorkItem2Suite) TestWI2ListByIterationFilter() {
 			ID: &iterationID,
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.ID)
 	require.NotNil(s.T(), wi.Data.Type)
@@ -1574,7 +1574,7 @@ func (s *WorkItem2Suite) TestWI2FailCreateInvalidAssignees() {
 		},
 	}
 	// when/then
-	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	test.CreateWorkitemsBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 }
 
 func (s *WorkItem2Suite) TestWI2FailUpdateInvalidAssignees() {
@@ -1588,7 +1588,7 @@ func (s *WorkItem2Suite) TestWI2FailUpdateInvalidAssignees() {
 			ident(newUser.ID),
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 
 	update := minimumRequiredUpdatePayload()
 	update.Data.ID = wi.Data.ID
@@ -1617,7 +1617,7 @@ func (s *WorkItem2Suite) TestWI2SuccessUpdateWithAssigneesRelation() {
 			ident(newUser2.ID),
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	assert.NotNil(s.T(), wi.Data)
 	assert.NotNil(s.T(), wi.Data.ID)
 	assert.NotNil(s.T(), wi.Data.Type)
@@ -1631,7 +1631,7 @@ func (s *WorkItem2Suite) TestWI2ShowOK() {
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
-	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, createdWI := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// when
 	res, fetchedWI := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWI.Data.Relationships.Space.Data.ID, *createdWI.Data.ID, nil, nil)
 	// then
@@ -1645,7 +1645,7 @@ func (s *WorkItem2Suite) TestWI2ShowOKUsingExpiredIfModifiedSinceHeader() {
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
-	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, createdWI := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// when
 	ifModifiedSince := app.ToHTTPTime(createdWI.Data.Attributes[workitem.SystemUpdatedAt].(time.Time).Add(-10 * time.Hour))
 	res, fetchedWI := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWI.Data.Relationships.Space.Data.ID, *createdWI.Data.ID, &ifModifiedSince, nil)
@@ -1660,7 +1660,7 @@ func (s *WorkItem2Suite) TestWI2ShowOKUsingExpiredIfNoneMatchHeader() {
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
-	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, createdWI := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// when
 	ifNoneMatch := "foo"
 	res, fetchedWI := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWI.Data.Relationships.Space.Data.ID, *createdWI.Data.ID, nil, &ifNoneMatch)
@@ -1675,7 +1675,7 @@ func (s *WorkItem2Suite) TestWI2ShowNotModifiedUsingIfModifiedSinceHeader() {
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
-	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, createdWI := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// when
 	ifModifiedSince := app.ToHTTPTime(createdWI.Data.Attributes[workitem.SystemUpdatedAt].(time.Time))
 	res := test.ShowWorkitemNotModified(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWI.Data.Relationships.Space.Data.ID, *createdWI.Data.ID, &ifModifiedSince, nil)
@@ -1689,7 +1689,7 @@ func (s *WorkItem2Suite) TestWI2ShowNotModifiedUsingIfNoneMatchHeader() {
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
-	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, createdWI := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// when
 	ifNoneMatch := app.GenerateEntityTag(convertWorkItemToConditionalRequestEntity(*createdWI))
 	res := test.ShowWorkitemNotModified(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWI.Data.Relationships.Space.Data.ID, *createdWI.Data.ID, nil, &ifNoneMatch)
@@ -1728,7 +1728,7 @@ func (s *WorkItem2Suite) TestWI2FailOnDelete() {
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 
-	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, createdWI := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWI.Data.Relationships.Space.Data.ID, *createdWI.Data.ID, nil, nil)
 	test.DeleteWorkitemMethodNotAllowed(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, *createdWI.Data.ID)
 }
@@ -1740,7 +1740,7 @@ func (s *WorkItem2Suite) xTestWI2SuccessDelete() {
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 
-	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, createdWI := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWI.Data.Relationships.Space.Data.ID, *createdWI.Data.ID, nil, nil)
 	test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, *createdWI.Data.ID)
 	test.ShowWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWI.Data.Relationships.Space.Data.ID, *createdWI.Data.ID, nil, nil)
@@ -1756,10 +1756,10 @@ func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
 	c.Data.Attributes[workitem.SystemTitle] = "WI1"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
-	_, wi1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, wi1 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	require.NotNil(s.T(), wi1)
 	c.Data.Attributes[workitem.SystemTitle] = "WI2"
-	_, wi2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, wi2 := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	require.NotNil(s.T(), wi2)
 
 	// Create link category
@@ -1813,7 +1813,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithArea() {
 			},
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// then
 	require.NotNil(s.T(), wi.Data.Relationships.Area)
 	assert.Equal(s.T(), areaID, *wi.Data.Relationships.Area.Data.ID)
@@ -1833,7 +1833,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithArea() {
 			ID:   workitem.SystemBug,
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	require.NotNil(s.T(), wi.Data.Relationships.Area)
 	require.NotNil(s.T(), wi.Data.Relationships.Area.Data.ID)
 	// should get root area's id for that space
@@ -1880,7 +1880,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootAreaIfMissing() {
 	log.Info(nil, nil, "child area created")
 	childAreaID := childArea.ID.String()
 	childAreaType := area.APIStringTypeAreas
-	payload := app.CreateWorkitemPayload{
+	payload := app.CreateWorkitemsPayload{
 		Data: &app.WorkItem{
 			Type: APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{
@@ -1907,7 +1907,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootAreaIfMissing() {
 		},
 	}
 	s.T().Log("Space ID:", testSpace.ID.String())
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, testSpace.ID, &payload)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, testSpace.ID, &payload)
 	require.NotNil(s.T(), wi.Data.Relationships.Space)
 	require.NotNil(s.T(), wi.Data.Relationships.Space.Data.ID)
 	require.NotNil(s.T(), wi.Data.Relationships.Area)
@@ -1947,7 +1947,7 @@ func (s *WorkItem2Suite) TestWI2CreateUnknownArea() {
 		},
 	}
 	// when/then
-	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	test.CreateWorkitemsBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 }
 
 func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
@@ -1972,7 +1972,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 			},
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// then
 	require.NotNil(s.T(), wi.Data.Relationships.Iteration)
 	assert.Equal(s.T(), iterationID, *wi.Data.Relationships.Iteration.Data.ID)
@@ -1987,7 +1987,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	assert.NotNil(s.T(), wi.Data.Relationships.Iteration)
 	// should get root iteration's id for that space
 	spaceRepo := space.NewRepository(s.DB)
@@ -2020,7 +2020,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootIterationIfMissing() {
 	testSpace, _, rootIteration, otherIteration := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
 	iterationID := otherIteration.ID.String()
 	iterationType := iteration.APIStringTypeIteration
-	payload := app.CreateWorkitemPayload{
+	payload := app.CreateWorkitemsPayload{
 		Data: &app.WorkItem{
 			Type: APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{
@@ -2047,7 +2047,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootIterationIfMissing() {
 		},
 	}
 	s.T().Log("Space ID:", testSpace.ID.String())
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, testSpace.ID, &payload)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, testSpace.ID, &payload)
 	require.NotNil(s.T(), wi.Data.Relationships.Space)
 	require.NotNil(s.T(), wi.Data.Relationships.Space.Data.ID)
 	require.NotNil(s.T(), wi.Data.Relationships.Iteration)
@@ -2089,7 +2089,7 @@ func (s *WorkItem2Suite) TestWI2UpdateRemoveIteration() {
 			ID:   &iterationID,
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	assert.NotNil(s.T(), wi.Data.Relationships.Iteration)
 	assert.NotNil(s.T(), wi.Data.Relationships.Iteration.Data)
 	u := minimumRequiredUpdatePayload()
@@ -2119,7 +2119,7 @@ func (s *WorkItem2Suite) TestWI2CreateUnknownIteration() {
 		},
 	}
 	// when/then
-	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	test.CreateWorkitemsBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 }
 
 func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithLegacyDescription() {
@@ -2131,7 +2131,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithLe
 	c.Data.Attributes[workitem.SystemDescription] = description
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
-	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, createdWI := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// when
 	_, fetchedWI := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWI.Data.Relationships.Space.Data.ID, *createdWI.Data.ID, nil, nil)
 	// then
@@ -2150,7 +2150,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithPl
 	c.Data.Attributes[workitem.SystemDescription] = description
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
-	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, createdWI := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// when
 	_, fetchedWI := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWI.Data.Relationships.Space.Data.ID, *createdWI.Data.ID, nil, nil)
 	// then
@@ -2169,7 +2169,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithMa
 	c.Data.Attributes[workitem.SystemDescription] = description
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
-	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, createdWI := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// when
 	_, fetchedWI := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWI.Data.Relationships.Space.Data.ID, *createdWI.Data.ID, nil, nil)
 	// then
@@ -2197,7 +2197,7 @@ func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 		LineNumber: line,
 	}
 	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
-	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, createdWI := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	require.NotNil(s.T(), createdWI)
 	// when
 	_, fetchedWI := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWI.Data.Relationships.Space.Data.ID, *createdWI.Data.ID, nil, nil)
@@ -2231,7 +2231,7 @@ func (s *WorkItem2Suite) TestFailToCreateWIWithCodebase() {
 	}
 	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
 	// when/then
-	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	test.CreateWorkitemsBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 }
 
 func (s *WorkItem2Suite) TestCreateWorkItemWithInferredSpace() {
@@ -2244,7 +2244,7 @@ func (s *WorkItem2Suite) TestCreateWorkItemWithInferredSpace() {
 	spaceID := *c.Data.Relationships.Space.Data.ID
 	c.Data.Relationships.Space = nil
 	// when
-	_, item := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, &c)
+	_, item := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, &c)
 	// then
 	require.NotNil(s.T(), item)
 	assert.Equal(s.T(), title, item.Data.Attributes[workitem.SystemTitle])
@@ -2275,7 +2275,7 @@ func (s *WorkItem2Suite) TestCreateWorkItemWithCustomSpace() {
 	// set custom space and see if WI gets custom space
 	c.Data.Relationships.Space.Data.ID = customSpace.Data.ID
 	// when
-	_, item := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, item := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// then
 	require.NotNil(s.T(), item)
 	assert.Equal(s.T(), title, item.Data.Attributes[workitem.SystemTitle])
@@ -2296,7 +2296,7 @@ func (s *WorkItem2Suite) TestCreateWorkItemWithInvalidSpace() {
 	fakeSpaceID := uuid.NewV4()
 	c.Data.Relationships.Space.Data.ID = &fakeSpaceID
 	// when/then
-	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	test.CreateWorkitemsBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 }
 
 func (s *WorkItem2Suite) TestDefaultSpaceAndIterationRelations() {
@@ -2306,7 +2306,7 @@ func (s *WorkItem2Suite) TestDefaultSpaceAndIterationRelations() {
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	// then
 	require.NotNil(s.T(), wi)
 	require.NotNil(s.T(), wi.Data.Relationships)
@@ -2329,7 +2329,7 @@ func (s *WorkItem2Suite) xTestWI2IfModifiedSince() {
 	c.Data.Relationships = &app.WorkItemRelationships{
 		BaseType: newRelationBaseType(space.SystemSpace, workitem.SystemBug),
 	}
-	resp, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+	resp, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 	lastMod := resp.Header().Get("Last-Modified")
 	s.svc.Use(func(handler goa.Handler) goa.Handler {
 		return func(ctx context.Context, rw http.ResponseWriter, req *http.Request) (err error) {
@@ -2363,7 +2363,7 @@ func (s *WorkItem2Suite) TestWI2ListForChildIteration() {
 				ID: &grandParentIterationID,
 			},
 		}
-		_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+		_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 		require.NotNil(s.T(), wi.Data)
 		require.NotNil(s.T(), wi.Data.ID)
 		require.NotNil(s.T(), wi.Data.Relationships.Iteration)
@@ -2382,7 +2382,7 @@ func (s *WorkItem2Suite) TestWI2ListForChildIteration() {
 				ID: &parentIterationID,
 			},
 		}
-		_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+		_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 		require.NotNil(s.T(), wi.Data)
 		require.NotNil(s.T(), wi.Data.ID)
 		require.NotNil(s.T(), wi.Data.Relationships.Iteration)
@@ -2401,7 +2401,7 @@ func (s *WorkItem2Suite) TestWI2ListForChildIteration() {
 				ID: &childIteraitonID,
 			},
 		}
-		_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
+		_, wi := test.CreateWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *c.Data.Relationships.Space.Data.ID, &c)
 		require.NotNil(s.T(), wi.Data)
 		require.NotNil(s.T(), wi.Data.ID)
 		require.NotNil(s.T(), wi.Data.Relationships.Iteration)
@@ -2421,12 +2421,12 @@ func (s *WorkItem2Suite) TestWI2ListForChildIteration() {
 	require.Len(s.T(), list.Data, 2)
 }
 
-func minimumRequiredCreatePayloadWithSpace(spaceID uuid.UUID) app.CreateWorkitemPayload {
+func minimumRequiredCreatePayloadWithSpace(spaceID uuid.UUID) app.CreateWorkitemsPayload {
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(spaceID.String()))
 
-	return app.CreateWorkitemPayload{
+	return app.CreateWorkitemsPayload{
 		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{},
@@ -2468,8 +2468,8 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	svcNotAuthrized := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity2, &TestSpaceAuthzService{testIdentity})
 	ctrlNotAuthrize := NewWorkitemController(svcNotAuthrized, gormapplication.NewGormDB(s.DB), s.Configuration)
 
-	_, wi := test.CreateWorkitemCreated(s.T(), svc.Context, svc, ctrl, *payload.Data.Relationships.Space.Data.ID, &payload)
-	_, wi2 := test.CreateWorkitemCreated(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, wi := test.CreateWorkitemsCreated(s.T(), svc.Context, svc, ctrl, *payload.Data.Relationships.Space.Data.ID, &payload)
+	_, wi2 := test.CreateWorkitemsCreated(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, *payload.Data.Relationships.Space.Data.ID, &payload)
 
 	// Update the workitem by space collaborator
 	wi.Data.Attributes[workitem.SystemTitle] = "Updated Test WI"

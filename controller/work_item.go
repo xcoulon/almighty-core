@@ -35,22 +35,22 @@ const (
 	none                      = "none"
 )
 
-// WorkitemController implements the workitem resource.
-type WorkitemController struct {
+// WorkItemController implements the workitem resource.
+type WorkItemController struct {
 	*goa.Controller
 	db     application.DB
 	config WorkItemControllerConfig
 }
 
-// WorkItemControllerConfig the config interface for the WorkitemController
+// WorkItemControllerConfig the config interface for the WorkItemController
 type WorkItemControllerConfig interface {
 	GetCacheControlWorkItems() string
 }
 
 // NewWorkitemController creates a workitem controller.
-func NewWorkitemController(service *goa.Service, db application.DB, config WorkItemControllerConfig) *WorkitemController {
-	return &WorkitemController{
-		Controller: service.NewController("WorkitemController"),
+func NewWorkitemController(service *goa.Service, db application.DB, config WorkItemControllerConfig) *WorkItemController {
+	return &WorkItemController{
+		Controller: service.NewController("WorkItemController"),
 		db:         db,
 		config:     config}
 }
@@ -148,7 +148,7 @@ func authorizeWorkitemEditor(ctx context.Context, db application.DB, spaceID uui
 }
 
 // Update does PATCH workitem
-func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
+func (c *WorkItemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if ctx.Payload == nil || ctx.Payload.Data == nil || ctx.Payload.Data.ID == nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("missing data.ID element in request", nil))
 	}
@@ -309,7 +309,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 }
 
 // Show does GET workitem
-func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
+func (c *WorkItemController) Show(ctx *app.ShowWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		wi, err := appl.WorkItems().LoadByID(ctx, ctx.WiID)
 		if err != nil {
@@ -329,7 +329,7 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 }
 
 // Delete does DELETE workitem
-func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
+func (c *WorkItemController) Delete(ctx *app.DeleteWorkitemContext) error {
 
 	// Temporarly disabled, See https://github.com/fabric8-services/fabric8-wit/issues/1036
 	if true {
@@ -675,7 +675,7 @@ func workItemIncludeHasChildren(appl application.Application, ctx context.Contex
 }
 
 // ListChildren runs the list action.
-func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) error {
+func (c *WorkItemController) ListChildren(ctx *app.ListChildrenWorkitemContext) error {
 	// WorkItemChildrenController_List: start_implement
 
 	var additionalQuery []string
