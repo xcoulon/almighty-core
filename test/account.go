@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
-	"github.com/fabric8-services/fabric8-wit/models"
 
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
