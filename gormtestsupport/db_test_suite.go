@@ -57,7 +57,7 @@ func (s *DBTestSuite) SetupSuite() {
 // PopulateDBTestSuite populates the DB with common values
 func (s *DBTestSuite) PopulateDBTestSuite(ctx context.Context) {
 	if _, c := os.LookupEnv(resource.Database); c != false {
-		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
+		if err := gormsupport.Transactional(s.DB, func(tx *gorm.DB) error {
 			return migration.PopulateCommonTypes(ctx, tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
 			log.Panic(nil, map[string]interface{}{

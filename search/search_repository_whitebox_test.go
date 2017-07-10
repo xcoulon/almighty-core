@@ -161,7 +161,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 		},
 	}
 
-	models.Transactional(s.DB, func(tx *gorm.DB) error {
+	gormsupport.Transactional(s.DB, func(tx *gorm.DB) error {
 
 		for _, testData := range testDataSet {
 			workItem := testData.wi
@@ -258,7 +258,7 @@ func stringInSlice(str string, list []string) bool {
 
 func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 
-	models.Transactional(s.DB, func(tx *gorm.DB) error {
+	gormsupport.Transactional(s.DB, func(tx *gorm.DB) error {
 		req := &http.Request{Host: "localhost"}
 		params := url.Values{}
 		ctx := goa.NewContext(context.Background(), nil, req, params)

@@ -59,7 +59,7 @@ func (s *Scheduler) ScheduleAllQueries(ctx context.Context, accessTokens map[str
 			// return anything. So effectively the authToken is optional.
 
 			for i := range tr.Fetch(authToken) {
-				models.Transactional(s.db, func(tx *gorm.DB) error {
+				gormsupport.Transactional(s.db, func(tx *gorm.DB) error {
 					// Save the remote items in a 'temporary' table.
 					err := upload(tx, tq.TrackerID, i)
 					if err != nil {

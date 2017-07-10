@@ -40,7 +40,7 @@ func NewUserspaceController(service *goa.Service, db *gorm.DB) *UserspaceControl
 
 // Create runs the create action.
 func (c *UserspaceController) Create(ctx *app.CreateUserspaceContext) error {
-	return models.Transactional(c.db, func(db *gorm.DB) error {
+	return gormsupport.Transactional(c.db, func(db *gorm.DB) error {
 
 		path := ctx.RequestURI
 
@@ -71,7 +71,7 @@ func (c *UserspaceController) Create(ctx *app.CreateUserspaceContext) error {
 
 // Show shows the record
 func (c *UserspaceController) Show(ctx *app.ShowUserspaceContext) error {
-	return models.Transactional(c.db, func(db *gorm.DB) error {
+	return gormsupport.Transactional(c.db, func(db *gorm.DB) error {
 
 		path := ctx.RequestURI
 		data := Data{}

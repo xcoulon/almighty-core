@@ -62,7 +62,7 @@ func CreateTestIdentity(db *gorm.DB, username, providerType string) (*account.Id
 // This function unlike CreateTestIdentity() allows to create an Identity with pre-defined ID.
 func CreateTestIdentityForAccountIdentity(db *gorm.DB, identity *account.Identity) error {
 	identityRepository := account.NewIdentityRepository(db)
-	err := models.Transactional(db, func(tx *gorm.DB) error {
+	err := gormsupport.Transactional(db, func(tx *gorm.DB) error {
 		return identityRepository.Create(context.Background(), identity)
 	})
 	if err != nil {
