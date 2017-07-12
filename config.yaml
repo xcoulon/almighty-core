@@ -23,6 +23,7 @@ postgres.transaction.timeout: 5m
 
 http.address: 0.0.0.0:8080
 #header.maxlength: 10240 # bytes
+api.serviceurl: http://localhost:8080/
 
 #------------------------
 # HTTP Cache-Control

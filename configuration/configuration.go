@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"regexp"
@@ -92,15 +93,70 @@ const (
 	varLogJSON                          = "log.json"
 	varTenantServiceURL                 = "tenant.serviceurl"
 	varNotificationServiceURL           = "notification.serviceurl"
+	varAPIServiceURL                    = "api.serviceurl"
 )
+
+var config *ConfigurationData
 
 // ConfigurationData encapsulates the Viper configuration object which stores the configuration data in-memory.
 type ConfigurationData struct {
-	v *viper.Viper
+	v         *viper.Viper
+	migrateDB bool
+}
+
+// Gets the config, making sure it's loaded once and only once.
+func Get() ConfigurationData {
+	if config == nil {
+		config = Load()
+	}
+	return *config
+}
+
+//Load loads the configuration using the default config file or the one specified with the '-config' switch
+// !! Will panic an error occurs !!
+func Load() *ConfigurationData {
+	// --------------------------------------------------------------------
+	// Parse flags
+	// --------------------------------------------------------------------
+	var configFilePath string
+	var printConfig bool
+	var migrateDB bool
+	// var scheduler *remoteworkitem.Scheduler
+	flag.StringVar(&configFilePath, "config", "", "Path to the config file to read")
+	flag.BoolVar(&printConfig, "printConfig", false, "Prints the config (including merged environment variables) and exits")
+	flag.BoolVar(&migrateDB, "migrateDatabase", false, "Migrates the database to the newest version and exits.")
+	flag.Parse()
+
+	// Override default -config switch with environment variable only if -config switch was
+	// not explicitly given via the command line.
+	configSwitchIsSet := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "config" {
+			configSwitchIsSet = true
+		}
+	})
+	if !configSwitchIsSet {
+		if envConfigPath, ok := os.LookupEnv("F8_CONFIG_FILE_PATH"); ok {
+			configFilePath = envConfigPath
+		}
+	}
+
+	config, err := NewConfigurationData(configFilePath, migrateDB)
+	if err != nil {
+		log.Panic(nil, map[string]interface{}{
+			"config_file_path": configFilePath,
+			"err":              err,
+		}, "failed to setup the configuration")
+	}
+
+	if printConfig {
+		os.Exit(0)
+	}
+	return config
 }
 
 // NewConfigurationData creates a configuration reader object using a configurable configuration file path
-func NewConfigurationData(configFilePath string) (*ConfigurationData, error) {
+func NewConfigurationData(configFilePath string, migrateDB bool) (*ConfigurationData, error) {
 	c := ConfigurationData{
 		v: viper.New(),
 	}
@@ -109,6 +165,7 @@ func NewConfigurationData(configFilePath string) (*ConfigurationData, error) {
 	c.v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	c.v.SetTypeByDefaultValue(true)
 	c.setConfigDefaults()
+	c.migrateDB = migrateDB
 
 	if configFilePath != "" {
 		c.v.SetConfigType("yaml")
@@ -135,12 +192,12 @@ func (c *ConfigurationData) GetDefaultConfigurationFile() string {
 	return defaultConfigFile
 }
 
-// GetConfigurationData is a wrapper over NewConfigurationData which reads configuration file path
-// from the environment variable.
-func GetConfigurationData() (*ConfigurationData, error) {
-	cd, err := NewConfigurationData(getConfigFilePath())
-	return cd, err
-}
+// // GetConfigurationData is a wrapper over NewConfigurationData which reads configuration file path
+// // from the environment variable.
+// func GetConfigurationData() (*ConfigurationData, error) {
+// 	cd, err := NewConfigurationData(getConfigFilePath())
+// 	return cd, err
+// }
 
 func (c *ConfigurationData) setConfigDefaults() {
 	//---------
@@ -213,6 +270,13 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varKeycloakTesUser2Secret, defaultKeycloakTesUser2Secret)
 	c.v.SetDefault(varOpenshiftTenantMasterURL, defaultOpenshiftTenantMasterURL)
 	c.v.SetDefault(varCheStarterURL, defaultCheStarterURL)
+
+	c.v.SetDefault(varAPIServiceURL, "http://localhost:8080")
+}
+
+// MigrateDB returns the value of the 'migrateDatabase' switch
+func (c *ConfigurationData) MigrateDB() bool {
+	return c.migrateDB
 }
 
 // GetPostgresHost returns the postgres host as set via default, config file, or environment variable
@@ -669,6 +733,11 @@ func (c *ConfigurationData) GetTenantServiceURL() string {
 // GetNotificationServiceURL returns the URL for the Notification service used for event notification
 func (c *ConfigurationData) GetNotificationServiceURL() string {
 	return c.v.GetString(varNotificationServiceURL)
+}
+
+// GetAPIServiceURL returns the base URL for this API service, to build the links in the JSON responses
+func (c *ConfigurationData) GetAPIServiceURL() string {
+	return c.v.GetString(varAPIServiceURL)
 }
 
 const (

@@ -307,11 +307,7 @@ func extractCallerDetails() (file string, line int, pkg string, function string,
 // in tests and as default static initialization of the log. If the ENV variable
 // is not set then the log level is Info.
 func getDefaultLogLevel() log.Level {
-	config, err := configuration.NewConfigurationData("")
-	if err != nil {
-		log.Errorf("error getting configuration data")
-	}
-
+	config := configuration.Get()
 	logLevel, err := log.ParseLevel(config.GetLogLevel())
 	if err != nil {
 		log.Warnf("unable to parse log level configuration error: %q", err)

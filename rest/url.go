@@ -24,7 +24,7 @@ func AbsoluteURL(req *goa.RequestData, relative string) string {
 	return fmt.Sprintf("%s://%s%s", scheme, req.Host, relative)
 }
 
-// ReplaceDomainPrefix replaces the last name in the host by a new name. Example: api.service.domain.org -> sso.service.domain.org
+// ReplaceDomainPrefix replaces the left-most name in the host by a new name. Example: api.service.domain.org -> sso.service.domain.org
 func ReplaceDomainPrefix(host string, replaceBy string) (string, error) {
 	split := strings.SplitN(host, ".", 2)
 	if len(split) < 2 {

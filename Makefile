@@ -106,17 +106,17 @@ analyze-go-code: golint gocyclo govet
 ## Run gocyclo analysis over the code.
 golint: $(GOLINT_BIN)
 	$(info >>--- RESULTS: GOLINT CODE ANALYSIS ---<<)
-	@$(foreach d,$(GOANALYSIS_DIRS),$(GOLINT_BIN) $d 2>&1 | grep -vEf .golint_exclude;)
+	@$(foreach d,$(GOLINT_BIN) $d 2>&1 | grep -vEf .golint_exclude;)
 
 ## Run gocyclo analysis over the code.
 gocyclo: $(GOCYCLO_BIN)
 	$(info >>--- RESULTS: GOCYCLO CODE ANALYSIS ---<<)
-	@$(foreach d,$(GOANALYSIS_DIRS),$(GOCYCLO_BIN) -over 10 $d | grep -vEf .golint_exclude;)
+	@$(foreach d,$(GOCYCLO_BIN) -over 10 $d | grep -vEf .golint_exclude;)
 
 ## Run go vet analysis over the code.
 govet:
 	$(info >>--- RESULTS: GO VET CODE ANALYSIS ---<<)
-	@$(foreach d,$(GOANALYSIS_DIRS),go tool vet --all $d/*.go 2>&1;)
+	@$(foreach d,go tool vet --all $d/*.go 2>&1;)
 
 .PHONY: format-go-code
 ## Formats any go file that differs from gofmt's style
@@ -165,8 +165,6 @@ migration/sqlbindata_test.go: $(GO_BINDATA_BIN) $(wildcard migration/sql-test-fi
 		migration/sql-test-files
 
 # These are binary tools from our vendored packages
-$(GOAGEN_BIN): $(VENDOR_DIR)
-	cd $(VENDOR_DIR)/github.com/goadesign/goa/goagen && go build -v
 $(GO_BINDATA_BIN): $(VENDOR_DIR)
 	cd $(VENDOR_DIR)/github.com/jteeuwen/go-bindata/go-bindata && go build -v
 $(GO_BINDATA_ASSETFS_BIN): $(VENDOR_DIR)
@@ -222,20 +220,6 @@ $(VENDOR_DIR): glide.lock glide.yaml
 ## Download build dependencies.
 deps: $(VENDOR_DIR)
 
-app/controllers.go: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR)
-	$(GOAGEN_BIN) app -d ${PACKAGE_NAME}/${DESIGN_DIR}
-	$(GOAGEN_BIN) controller -d ${PACKAGE_NAME}/${DESIGN_DIR} -o controller/ --pkg controller --app-pkg ${PACKAGE_NAME}/app
-	$(GOAGEN_BIN) gen -d ${PACKAGE_NAME}/${DESIGN_DIR} --pkg-path=${PACKAGE_NAME}/goasupport/conditional_request --out app
-	$(GOAGEN_BIN) gen -d ${PACKAGE_NAME}/${DESIGN_DIR} --pkg-path=${PACKAGE_NAME}/goasupport/helper_function --out app
-	$(GOAGEN_BIN) client -d ${PACKAGE_NAME}/${DESIGN_DIR}
-	$(GOAGEN_BIN) swagger -d ${PACKAGE_NAME}/${DESIGN_DIR}
-	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-tenant/design --notool --pkg tenant -o account
-	$(GOAGEN_BIN) client -d github.com/fabric8-services/fabric8-notification/design --notool --pkg client -o notification
-
-
-assets/js/client.js: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR)
-	$(GOAGEN_BIN) js -d ${PACKAGE_NAME}/${DESIGN_DIR} -o assets/ --noexample
-
 bindata_assetfs.go: $(DESIGNS) $(GO_BINDATA_ASSETFS_BIN) $(GO_BINDATA_BIN) $(VENDOR_DIR)
 	PATH="$$PATH:$(EXTRA_PATH)" $(GO_BINDATA_ASSETFS_BIN) -debug assets/...
 
@@ -245,8 +229,7 @@ migrate-database: $(BINARY_SERVER_BIN)
 	$(BINARY_SERVER_BIN) -migrateDatabase
 
 .PHONY: generate
-## Generate GOA sources. Only necessary after clean of if changed `design` folder.
-generate: app/controllers.go assets/js/client.js bindata_assetfs.go migration/sqlbindata.go
+generate: migration/sqlbindata.go
 
 .PHONY: regenerate
 ## Runs the "clean-generated" and the "generate" target

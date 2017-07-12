@@ -46,6 +46,15 @@ imports:
   version: 629574ca2a5df945712d3079857300b5e4da0236
 - name: github.com/fzipp/gocyclo
   version: 6acd4345c835499920e8426c7e4e8d7a34f1bb83
+- name: github.com/gedex/inflector
+  version: 16278e9db8130ac7ec405dc174cfb94344f16325
+- name: github.com/gin-contrib/sse
+  version: 22d885f9ecc78bf4ee5d72b937e4bbcdc58e8cae
+- name: github.com/gin-gonic/gin
+  version: d459835d2b077e44f7c9b453505ee29881d5d12d
+  subpackages:
+  - binding
+  - render
 - name: github.com/goadesign/goa
   version: 58f3177f36f2c50ee6119da92795e48bac6d6243
   vcs: git
@@ -61,9 +70,7 @@ imports:
   - goagen/gen_controller
   - goagen/utils
   - goatest
-  - logging/logrus
   - middleware
-  - middleware/gzip
   - middleware/security/jwt
   - uuid
   - version
@@ -83,6 +90,8 @@ imports:
   version: 9235644dd9e52eeae6fa48efd539fdc351a0af53
   subpackages:
   - query
+- name: github.com/google/jsonapi
+  version: 46d3ced0434461be12e555852e2f1a9ed382e139
 - name: github.com/hashicorp/hcl
   version: 37ab263305aaeb501a60eb16863e808d426e37f2
   subpackages:
@@ -106,6 +115,8 @@ imports:
   version: bbd0c6e271208dce66d8fda4bc536453cd27fc4a
   subpackages:
   - '...'
+- name: github.com/julienschmidt/httprouter
+  version: 975b5c4c7c21c0e3d2764200bf2aa8e34657ae6e
 - name: github.com/kr/pretty
   version: cfb55aafdaf3ec08f0db22699ab822c50091b1c4
 - name: github.com/kr/text
@@ -120,6 +131,11 @@ imports:
   version: be5ece7dd465ab0765a9682137865547526d1dfb
 - name: github.com/manveru/faker
   version: 717f7cf83fb78669bfab612749c2e8ff63d5be11
+- name: github.com/manyminds/api2go
+  version: b893b9448d075a17008d94413004e337705bb212
+  subpackages:
+  - jsonapi
+  - routing
 - name: github.com/mattn/go-colorable
   version: d228849504861217f796da67fae4f6e347643f15
 - name: github.com/mattn/go-isatty
@@ -128,6 +144,10 @@ imports:
   version: e79763773ab6222ca1d5a7cbd9d62d83c1f77081
 - name: github.com/mitchellh/mapstructure
   version: 5a0325d7fafaac12dda6e7fb8bd222ec1b69875e
+- name: github.com/onsi/ginkgo
+  version: 1e72798a2620664d2ab32ffd4473c102fcd4894d
+- name: github.com/onsi/gomega
+  version: c990b8b3a34c8814a6657daebe8e19ff4d9647a1
 - name: github.com/pelletier/go-buffruneio
   version: c37440a7cf42ac63b919c752ca73a85067e05992
 - name: github.com/pelletier/go-toml
@@ -186,6 +206,10 @@ imports:
   version: 4a656addb20609ba4cb4d20219a2f6c27aeb142c
   subpackages:
   - tcontainer
+- name: github.com/ugorji/go
+  version: 5efa3251c7f7d05e5d9704a69a984ec9f1386a40
+  subpackages:
+  - codec
 - name: github.com/wadey/gocovmerge
   version: b5bfa59ec0adc420475f97f89b58045c721d761c
 - name: github.com/zach-klippenstein/goregen
@@ -226,6 +250,8 @@ imports:
   - urlfetch
 - name: gopkg.in/asaskevich/govalidator.v4
   version: 7664702784775e51966f0885f5cd27435916517b
+- name: gopkg.in/go-playground/validator.v8
+  version: 5f57d2222ad794d0dffb07e664ea05e2ee07d60c
 - name: gopkg.in/yaml.v2
   version: a5b47d31c556af34a302ce5d659e6fea44d90de0
 testImports: []

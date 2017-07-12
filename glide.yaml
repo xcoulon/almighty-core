@@ -10,6 +10,12 @@ import:
   - design
 - package: github.com/dgrijalva/jwt-go
   version: ^3.0.0
+- package: github.com/gin-gonic/gin
+  version: ^1.2.0
+- package: github.com/spf13/viper
+- package: github.com/onsi/ginkgo
+- package: github.com/onsi/gomega
+- package: github.com/google/jsonapi
 - package: github.com/goadesign/goa
   version: ^1.2.0
   vcs: git
