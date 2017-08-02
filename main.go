@@ -19,7 +19,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/migration"
-	"github.com/fabric8-services/fabric8-wit/notification"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
@@ -35,33 +34,8 @@ func main() {
 
 	printUserInfo()
 
-	var db *gorm.DB
-	for {
-		db, err := gorm.Open("postgres", config.GetPostgresConfigString())
-		if err != nil {
-			db.Close()
-			log.Logger().Errorf("ERROR: Unable to open connection to database %v", err)
-			log.Logger().Infof("Retrying to connect in %v...", config.GetPostgresConnectionRetrySleep())
-			time.Sleep(config.GetPostgresConnectionRetrySleep())
-		} else {
-			defer db.Close()
-			break
-		}
-	}
-	log.Logger().Infof("DB connection: %v...", db)
-
-	if config.IsPostgresDeveloperModeEnabled() && log.IsDebug() {
-		db = db.Debug()
-	}
-
-	if config.GetPostgresConnectionMaxIdle() > 0 {
-		log.Logger().Infof("Configured connection pool max idle %v", config.GetPostgresConnectionMaxIdle())
-		db.DB().SetMaxIdleConns(config.GetPostgresConnectionMaxIdle())
-	}
-	if config.GetPostgresConnectionMaxOpen() > 0 {
-		log.Logger().Infof("Configured connection pool max open %v", config.GetPostgresConnectionMaxOpen())
-		db.DB().SetMaxOpenConns(config.GetPostgresConnectionMaxOpen())
-	}
+	db := connectToDB(config)
+	defer db.Close()
 
 	// Set the database transaction timeout
 	application.SetDatabaseTransactionTimeout(config.GetPostgresTransactionTimeout())
@@ -122,18 +96,18 @@ func main() {
 	// identityRepository := account.NewIdentityRepository(db)
 	// userRepository := account.NewUserRepository(db)
 
-	var notificationChannel notification.Channel = &notification.DevNullChannel{}
-	if configuration.GetNotificationServiceURL() != "" {
-		log.Logger().Infof("Enabling Notification service %v", configuration.GetNotificationServiceURL())
-		channel, err := notification.NewServiceChannel(configuration)
-		if err != nil {
-			log.Panic(nil, map[string]interface{}{
-				"err": err,
-				"url": configuration.GetNotificationServiceURL(),
-			}, "failed to parse notification service url")
-		}
-		notificationChannel = channel
-	}
+	// var notificationChannel notification.Channel = &notification.DevNullChannel{}
+	// if config.GetNotificationServiceURL() != "" {
+	// 	log.Logger().Infof("Enabling Notification service %v", config.GetNotificationServiceURL())
+	// 	channel, err := notification.NewServiceChannel(&config)
+	// 	if err != nil {
+	// 		log.Panic(nil, map[string]interface{}{
+	// 			"err": err,
+	// 			"url": config.GetNotificationServiceURL(),
+	// 		}, "failed to parse notification service url")
+	// 	}
+	// 	notificationChannel = channel
+	// }
 
 	appDB := gormapplication.NewGormDB(db)
 
@@ -264,6 +238,36 @@ func main() {
 	r.Run(config.GetHTTPAddress())
 }
 
+func connectToDB(config configuration.ConfigurationData) *gorm.DB {
+	var db *gorm.DB
+	var err error
+	for {
+		db, err = gorm.Open("postgres", config.GetPostgresConfigString())
+		if err != nil {
+			db.Close()
+			log.Logger().Errorf("ERROR: Unable to open connection to database %v", err)
+			log.Logger().Infof("Retrying to connect in %v...", config.GetPostgresConnectionRetrySleep())
+			time.Sleep(config.GetPostgresConnectionRetrySleep())
+		} else {
+			break
+		}
+	}
+
+	if config.IsPostgresDeveloperModeEnabled() && log.IsDebug() {
+		db = db.Debug()
+	}
+
+	if config.GetPostgresConnectionMaxIdle() > 0 {
+		log.Logger().Infof("Configured connection pool max idle %v", config.GetPostgresConnectionMaxIdle())
+		db.DB().SetMaxIdleConns(config.GetPostgresConnectionMaxIdle())
+	}
+	if config.GetPostgresConnectionMaxOpen() > 0 {
+		log.Logger().Infof("Configured connection pool max open %v", config.GetPostgresConnectionMaxOpen())
+		db.DB().SetMaxOpenConns(config.GetPostgresConnectionMaxOpen())
+	}
+	log.Logger().Infof("DB connection: %v...", db)
+	return db
+}
 func printUserInfo() {
 	u, err := user.Current()
 	if err != nil {
