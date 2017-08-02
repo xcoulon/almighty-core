@@ -152,7 +152,7 @@ func Load() *ConfigurationData {
 	if printConfig {
 		os.Exit(0)
 	}
-	log.Infof("Configuration loaded from %s", config.v.ConfigFileUsed())
+	log.Info("Configuration loaded")
 	return config
 }
 

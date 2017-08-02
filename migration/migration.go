@@ -45,23 +45,18 @@ var populateLocker = &sync.Mutex{}
 // table, that states when a certain version was reached.
 func Migrate(db *sql.DB, catalog string) error {
 	var err error
-
 	if db == nil {
-		return errs.Errorf("Database handle is nil\n")
+		return errs.Errorf("database handle is nil")
 	}
-
 	m := GetMigrations()
 
 	var tx *sql.Tx
 	for nextVersion := int64(0); nextVersion < int64(len(m)) && err == nil; nextVersion++ {
-
 		tx, err = db.Begin()
 		if err != nil {
-			return errs.Errorf("Failed to start transaction: %s\n", err)
+			return errs.Wrap(err, "failed to start transaction")
 		}
-
 		err = MigrateToNextVersion(tx, &nextVersion, m, catalog)
-
 		if err != nil {
 			oldErr := err
 			log.Info(nil, map[string]interface{}{
@@ -76,7 +71,7 @@ func Migrate(db *sql.DB, catalog string) error {
 					"migrations":   m,
 					"err":          err,
 				}, "error while rolling back transaction: ", err)
-				return errs.Errorf("Error while rolling back transaction: %s\n", err)
+				return errs.Wrap(err, "error while rolling back transaction")
 			}
 			return oldErr
 		}
@@ -86,7 +81,7 @@ func Migrate(db *sql.DB, catalog string) error {
 				"migrations": m,
 				"err":        err,
 			}, "error during transaction commit: %v", err)
-			return errs.Errorf("Error during transaction commit: %s\n", err)
+			return errs.Wrap(err, "error during transaction commit")
 		}
 
 	}
@@ -96,7 +91,7 @@ func Migrate(db *sql.DB, catalog string) error {
 			"migrations": m,
 			"err":        err,
 		}, "migration failed with error: %v", err)
-		return errs.Errorf("Migration failed with error: %s\n", err)
+		return errs.Wrap(err, "migration failed")
 	}
 
 	return nil
