@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/test/resource"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,7 +16,7 @@ import (
 
 var reqLong *goa.RequestData
 var reqShort *goa.RequestData
-var config *ConfigurationData
+var testConfig ConfigurationData
 
 func init() {
 
@@ -32,7 +32,7 @@ func init() {
 
 func resetConfiguration() {
 	var err error
-	config, err = GetConfigurationData()
+	testConfig = Get()
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}

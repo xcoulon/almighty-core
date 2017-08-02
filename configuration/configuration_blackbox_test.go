@@ -12,8 +12,8 @@ import (
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/fabric8-services/fabric8-wit/configuration"
-	"github.com/fabric8-services/fabric8-wit/resource"
+	. "github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/test/resource"
 	"github.com/goadesign/goa"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -29,7 +29,7 @@ const (
 
 var reqLong *goa.RequestData
 var reqShort *goa.RequestData
-var config *configuration.ConfigurationData
+var config *ConfigurationData
 
 func TestMain(m *testing.M) {
 	resetConfiguration(defaultConfigFilePath)
@@ -47,7 +47,7 @@ func resetConfiguration(configPath string) {
 	var err error
 
 	// calling NewConfigurationData("") is same as GetConfigurationData()
-	config, err = configuration.NewConfigurationData(configPath)
+	config, err = NewConfigurationData(configPath)
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}

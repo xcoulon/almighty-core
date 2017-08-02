@@ -12,7 +12,7 @@ import (
 	config "github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/migration"
-	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/test/resource"
 	uuid "github.com/satori/go.uuid"
 
 	"time"
@@ -34,7 +34,7 @@ const (
 )
 
 var (
-	conf       *config.ConfigurationData
+	conf       config.ConfigurationData
 	migrations migration.Migrations
 	dialect    gorm.Dialect
 	gormDB     *gorm.DB
@@ -43,10 +43,7 @@ var (
 
 func setupTest() {
 	var err error
-	conf, err = config.GetConfigurationData()
-	if err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
+	conf = config.Get()
 	configurationString := fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=%s connect_timeout=%d",
 		conf.GetPostgresHost(),
 		conf.GetPostgresPort(),

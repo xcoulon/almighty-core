@@ -12,8 +12,6 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 
-	"fmt"
-
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/controller"
@@ -31,9 +29,9 @@ import (
 func main() {
 
 	config := configuration.Get()
-	fmt.Printf("Config: %v\n", config)
 	// Initialized developer mode flag and log level for the logger
 	log.InitializeLogger(config.IsLogJSON(), config.GetLogLevel())
+	log.Logger().Debugf("Config: %v\n", config.String()) // will print all config settings including DB credentials, so make sure this is only visible in DEBUG mode
 
 	printUserInfo()
 
@@ -50,6 +48,7 @@ func main() {
 			break
 		}
 	}
+	log.Logger().Infof("DB connection: %v...", db)
 
 	if config.IsPostgresDeveloperModeEnabled() && log.IsDebug() {
 		db = db.Debug()
@@ -66,7 +65,6 @@ func main() {
 
 	// Set the database transaction timeout
 	application.SetDatabaseTransactionTimeout(config.GetPostgresTransactionTimeout())
-
 	// Migrate the schema
 	err := migration.Migrate(db.DB(), config.GetPostgresDatabase())
 	if err != nil {

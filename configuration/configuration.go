@@ -104,7 +104,7 @@ type ConfigurationData struct {
 	migrateDB bool
 }
 
-// Gets the config, making sure it's loaded once and only once.
+// Get gets the config, making sure it's loaded once and only once.
 func Get() ConfigurationData {
 	if config == nil {
 		config = Load()
@@ -152,6 +152,7 @@ func Load() *ConfigurationData {
 	if printConfig {
 		os.Exit(0)
 	}
+	log.Infof("Configuration loaded from %s", config.v.ConfigFileUsed())
 	return config
 }
 
