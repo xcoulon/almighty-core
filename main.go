@@ -8,10 +8,10 @@ import (
 
 	"context"
 
-	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 
+	"github.com/fabric8-services/fabric8-wit/api"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/controller"
@@ -19,7 +19,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/migration"
-	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
@@ -223,21 +222,7 @@ func main() {
 	// 	service.LogError("startup", "err", err)
 	// }
 
-	r := gin.Default()
-	r.GET("/ping", func(c *gin.Context) {
-		c.String(200, "pong")
-	})
-	// api := api2go.NewAPIWithRouting(
-	// 	"api",
-	// 	api2go.NewStaticResolver("/"),
-	// 	gingonicsupport.New(r),
-	// )
-	// api.AddResource(model.Space{}, resource.NewSpaceResource(appDB))
-	spacesResource := resource.NewSpacesResource(appDB)
-	workitemsResource := resource.NewWorkItemsResource(appDB)
-	r.GET("/api/spaces/:spaceID", spacesResource.GetByID)
-	r.GET("/api/spaces/:spaceID/workitems", workitemsResource.List)
-	r.Run(config.GetHTTPAddress())
+	api.NewGinEngine(appDB).Run(config.GetHTTPAddress())
 }
 
 func connectToDB(config configuration.ConfigurationData) *gorm.DB {

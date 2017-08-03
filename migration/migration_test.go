@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	config "github.com/fabric8-services/fabric8-wit/configuration"
-	"github.com/fabric8-services/fabric8-wit/test/resource"
+	"github.com/fabric8-services/fabric8-wit/resource"
 
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"

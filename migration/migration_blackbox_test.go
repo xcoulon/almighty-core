@@ -12,7 +12,7 @@ import (
 	config "github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/migration"
-	"github.com/fabric8-services/fabric8-wit/test/resource"
+	"github.com/fabric8-services/fabric8-wit/resource"
 	uuid "github.com/satori/go.uuid"
 
 	"time"
