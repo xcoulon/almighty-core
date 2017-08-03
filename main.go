@@ -233,8 +233,10 @@ func main() {
 	// 	gingonicsupport.New(r),
 	// )
 	// api.AddResource(model.Space{}, resource.NewSpaceResource(appDB))
-	spaceResource := resource.NewSpaceResource(appDB)
-	r.GET("/api/spaces/:spaceID", spaceResource.GetByID)
+	spacesResource := resource.NewSpacesResource(appDB)
+	workitemsResource := resource.NewWorkItemsResource(appDB)
+	r.GET("/api/spaces/:spaceID", spacesResource.GetByID)
+	r.GET("/api/spaces/:spaceID/workitems", workitemsResource.List)
 	r.Run(config.GetHTTPAddress())
 }
 

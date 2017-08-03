@@ -34,7 +34,7 @@ func Transactional(db DB, todo func(f Application) error) error {
 		go func(tx Transaction) {
 			defer func() {
 				if err := recover(); err != nil {
-					errorChan <- errors.New(fmt.Sprintf("Unknown error: %v", err))
+					errorChan <- fmt.Errorf("Unknown error: %v", err)
 				}
 			}()
 			errorChan <- todo(tx)
@@ -47,7 +47,8 @@ func Transactional(db DB, todo func(f Application) error) error {
 				tx.Rollback()
 				log.Error(nil, map[string]interface{}{
 					"err": err,
-				}, "database transaction failed!")
+				}, "database transaction failed")
+				fmt.Printf("Error: %v", err)
 				return errors.WithStack(err)
 			}
 
@@ -57,8 +58,8 @@ func Transactional(db DB, todo func(f Application) error) error {
 		case <-txTimeout:
 			log.Debug(nil, nil, "Rolling back the transaction...")
 			tx.Rollback()
-			log.Error(nil, nil, "database transaction timeout!")
-			return errors.New("database transaction timeout!")
+			log.Error(nil, nil, "database transaction timeout")
+			return errors.New("database transaction timeout")
 		}
 	}()
 }
