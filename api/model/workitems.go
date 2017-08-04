@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/rendering"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/google/jsonapi"
 )
 
@@ -15,12 +17,22 @@ type WorkItem struct {
 	Description string `jsonapi:"attr,description"`
 }
 
+// NewWorkItem initializes a new WorkItem from the given model
+func NewWorkItem(wi workitem.WorkItem) *WorkItem {
+	return &WorkItem{
+		ID:          wi.ID.String(),
+		SpaceID:     wi.SpaceID.String(),
+		Title:       wi.Fields[workitem.SystemTitle].(string),
+		Description: wi.Fields[workitem.SystemDescription].(rendering.MarkupContent).Content,
+	}
+}
+
 // JSONAPILinks returns the links to the work item
 func (w WorkItem) JSONAPILinks() *jsonapi.Links {
 	config := configuration.Get()
 	return &jsonapi.Links{
 		"self": jsonapi.Link{
-			Href: fmt.Sprintf("%[1]s/api/spaces/%[2]s/workitems/%[3]s", config.GetAPIServiceURL(), w.SpaceID, w.ID),
+			Href: fmt.Sprintf("%[1]s/api/workitems/%[2]s", config.GetAPIServiceURL(), w.ID),
 		},
 	}
 }

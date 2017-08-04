@@ -17,5 +17,6 @@ func NewGinEngine(appDB *gormapplication.GormDB, config *configuration.Configura
 	workitemsResource := resource.NewWorkItemsResource(appDB, config)
 	httpEngine.GET("/api/spaces/:spaceID", spacesResource.GetByID)
 	httpEngine.GET("/api/spaces/:spaceID/workitems", workitemsResource.List)
+	httpEngine.GET("/api/workitems/:workitemID", workitemsResource.Show)
 	return httpEngine
 }

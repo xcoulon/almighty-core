@@ -12,7 +12,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	query "github.com/fabric8-services/fabric8-wit/query/simple"
-	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/search"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/gin-gonic/gin"
@@ -52,7 +51,7 @@ func NewWorkItemsResource(db application.DB, config WorkItemsResourceConfigurati
 	return WorkItemsResource{db: db, config: config}
 }
 
-//List lists the work items, given the query parameters passed in the context
+//List lists the work items, given the query parameters passed in the request URI
 func (r WorkItemsResource) List(ctx *gin.Context) {
 	spaceID, err := uuid.FromString(ctx.Param("spaceID")) // the space ID param
 	if err != nil {
@@ -150,12 +149,7 @@ func (r WorkItemsResource) List(ctx *gin.Context) {
 	// hasChildren := workItemIncludeHasChildren(tx, ctx)
 	items := make([]*model.WorkItem, len(workitems)) // has to be an array of pointer
 	for i, wi := range workitems {
-		items[i] = &model.WorkItem{
-			ID:          wi.ID.String(),
-			SpaceID:     wi.SpaceID.String(),
-			Title:       wi.Fields[workitem.SystemTitle].(string),
-			Description: wi.Fields[workitem.SystemDescription].(rendering.MarkupContent).Content,
-		}
+		items[i] = model.NewWorkItem(wi)
 	}
 	// setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(workitems), offset, limit, count, additionalQuery...)
 	// addFilterLinks(response.Links, ctx.RequestData)
@@ -178,4 +172,22 @@ func (r WorkItemsResource) List(ctx *gin.Context) {
 		ctx.AbortWithError(http.StatusInternalServerError, errs.Wrapf(err, "error while fetching the space with id=%s", spaceID.String()))
 	}
 
+}
+
+//Show shows a single work item, given the parameters passed in the request URI
+func (r WorkItemsResource) Show(ctx *gin.Context) {
+	workitemID, err := uuid.FromString(ctx.Param("workitemID")) // the workitem ID param
+	if err != nil {
+		ctx.AbortWithError(401, errors.NewBadParameterError("workitem ID is not a valid UUID", err))
+	}
+	wi, err := r.db.WorkItems().LoadByID(ctx, workitemID)
+	if err != nil {
+		ctx.AbortWithError(500, errors.NewBadParameterError("error showing work item", err))
+	}
+	result := model.NewWorkItem(*wi)
+	ctx.Status(http.StatusOK)
+	ctx.Header("Content-Type", jsonapi.MediaType)
+	if err := jsonapi.MarshalPayload(ctx.Writer, result); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, errs.Wrapf(err, "error while fetching the work item with id=%s", workitemID.String()))
+	}
 }
