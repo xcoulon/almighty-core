@@ -1,14 +1,35 @@
 package resource
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/gin-gonic/gin"
+	"github.com/google/jsonapi"
 	uuid "github.com/satori/go.uuid"
 )
+
+// OK Responds with a '200 OK' response
+func OK(ctx *gin.Context, result interface{}) {
+	ctx.Status(http.StatusOK)
+	ctx.Header("Content-Type", jsonapi.MediaType)
+	switch result := result.(type) {
+	case jsonapi.ManyPayload:
+		ctx.Status(http.StatusOK)
+		ctx.Header("Content-Type", jsonapi.MediaType)
+		if err := json.NewEncoder(ctx.Writer).Encode(result); err != nil {
+			abortWithError(ctx, err)
+			return
+		}
+	default:
+		if err := jsonapi.MarshalPayload(ctx.Writer, result); err != nil {
+			abortWithError(ctx, err)
+		}
+	}
+}
 
 // GetParamAsString returns the query parameter as a string from its given key
 // return nil if the request parameter was not present

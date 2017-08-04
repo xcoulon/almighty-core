@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -51,6 +50,7 @@ func NewWorkItemsResource(db application.DB, config WorkItemsResourceConfigurati
 }
 
 type WorkItemsResourceListContext struct {
+	*gin.Context
 	SpaceID             uuid.UUID `gin:"param,spaceID"`
 	Filter              *string   `gin:"query,filter"`
 	ExpressionFilter    *string
@@ -64,6 +64,7 @@ type WorkItemsResourceListContext struct {
 	PageLimit           *int
 }
 
+// Note: this kind of function could be generated, based on struct tags on WorkItemsResourceListContext fields.
 func NewWorkItemsResourceListContext(ctx *gin.Context) (*WorkItemsResourceListContext, error) {
 	spaceID, err := GetQueryParamAsUUID(ctx, "spaceID")
 	if err != nil {
@@ -93,6 +94,7 @@ func NewWorkItemsResourceListContext(ctx *gin.Context) (*WorkItemsResourceListCo
 	}
 
 	return &WorkItemsResourceListContext{
+		Context:             ctx,
 		SpaceID:             *spaceID,
 		Filter:              filter,
 		ExpressionFilter:    expressionFilter,
@@ -105,6 +107,11 @@ func NewWorkItemsResourceListContext(ctx *gin.Context) (*WorkItemsResourceListCo
 		PageOffset:          pageOffset,
 		PageLimit:           pageLimit,
 	}, nil
+}
+
+// OK Responds with a '200 OK' response
+func (ctx *WorkItemsResourceListContext) OK(result interface{}) {
+	OK(ctx.Context, result)
 }
 
 //List lists the work items, given the query parameters passed in the request URI
@@ -202,17 +209,18 @@ func (r WorkItemsResource) List(ctx *gin.Context) {
 			Href: fmt.Sprintf("%[1]s/api/spaces/%[2]s/workitems", r.config.GetAPIServiceURL(), listCtx.SpaceID.String()),
 		},
 	}
-	ctx.Status(http.StatusOK)
-	ctx.Header("Content-Type", jsonapi.MediaType)
-	if err := json.NewEncoder(ctx.Writer).Encode(payload); err != nil {
-		abortWithError(ctx, err)
-		return
-	}
+	listCtx.OK(payload)
 }
 
 //WorkItemsResourceShowContext the context to show a work item
 type WorkItemsResourceShowContext struct {
+	*gin.Context
 	WorkitemID uuid.UUID `gin:"param,workitemID"`
+}
+
+// OK Responds with a '200 OK' response
+func (ctx *WorkItemsResourceShowContext) OK(result interface{}) {
+	OK(ctx.Context, result)
 }
 
 //NewWorkItemsResourceShowContext initializes a new WorkItemsResourceShowContext context from the 'gin' context
@@ -222,6 +230,7 @@ func NewWorkItemsResourceShowContext(ctx *gin.Context) (*WorkItemsResourceShowCo
 		return nil, errors.NewBadParameterError("workitemID", err)
 	}
 	return &WorkItemsResourceShowContext{
+		Context:    ctx,
 		WorkitemID: workitemID,
 	}, nil
 }
@@ -239,9 +248,5 @@ func (r WorkItemsResource) Show(ctx *gin.Context) {
 		return
 	}
 	result := model.NewWorkItem(*wi)
-	ctx.Status(http.StatusOK)
-	ctx.Header("Content-Type", jsonapi.MediaType)
-	if err := jsonapi.MarshalPayload(ctx.Writer, result); err != nil {
-		abortWithError(ctx, err)
-	}
+	showCtx.OK(result)
 }
