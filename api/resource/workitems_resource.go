@@ -16,7 +16,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/gin-gonic/gin"
 	"github.com/google/jsonapi"
-	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -51,53 +50,108 @@ func NewWorkItemsResource(db application.DB, config WorkItemsResourceConfigurati
 	return WorkItemsResource{db: db, config: config}
 }
 
+type WorkItemsResourceListContext struct {
+	SpaceID             uuid.UUID `gin:"param,spaceID"`
+	Filter              *string   `gin:"query,filter"`
+	ExpressionFilter    *string
+	AssigneeFilter      *string
+	IterationFilter     *string
+	WorkitemTypeFilter  *uuid.UUID
+	AreaFilter          *string
+	WorkitemStateFilter *string
+	ParentExistsFilter  *bool
+	PageOffset          *int
+	PageLimit           *int
+}
+
+func NewWorkItemsResourceListContext(ctx *gin.Context) (*WorkItemsResourceListContext, error) {
+	spaceID, err := GetQueryParamAsUUID(ctx, "spaceID")
+	if err != nil {
+		return nil, err
+	}
+	filter := GetQueryParamAsString(ctx, FilterQueryParam)
+	expressionFilter := GetQueryParamAsString(ctx, ExpressionFilterQueryParam)
+	assigneeFilter := GetQueryParamAsString(ctx, AssigneeFilterQueryParam)
+	iterationFilter := GetQueryParamAsString(ctx, IterationFilterQueryParam)
+	workitemTypeFilter, err := GetQueryParamAsUUID(ctx, WorkItemTypeFilterQueryParam)
+	if err != nil {
+		return nil, err
+	}
+	areaFilter := GetQueryParamAsString(ctx, AreaFilterQueryParam)
+	workitemStateFilter := GetQueryParamAsString(ctx, WorkItemStateFilterQueryParam)
+	parentExistsFilter, err := GetQueryParamAsBool(ctx, ParentExistsFilterQueryParam)
+	if err != nil {
+		return nil, err
+	}
+	pageOffset, err := GetQueryParamAsInt(ctx, PageOffsetQueryParam)
+	if err != nil {
+		return nil, err
+	}
+	pageLimit, err := GetQueryParamAsInt(ctx, PageLimitQueryParam)
+	if err != nil {
+		return nil, err
+	}
+
+	return &WorkItemsResourceListContext{
+		SpaceID:             *spaceID,
+		Filter:              filter,
+		ExpressionFilter:    expressionFilter,
+		AssigneeFilter:      assigneeFilter,
+		IterationFilter:     iterationFilter,
+		WorkitemTypeFilter:  workitemTypeFilter,
+		AreaFilter:          areaFilter,
+		WorkitemStateFilter: workitemStateFilter,
+		ParentExistsFilter:  parentExistsFilter,
+		PageOffset:          pageOffset,
+		PageLimit:           pageLimit,
+	}, nil
+}
+
 //List lists the work items, given the query parameters passed in the request URI
 func (r WorkItemsResource) List(ctx *gin.Context) {
-	spaceID, err := uuid.FromString(ctx.Param("spaceID")) // the space ID param
+	listCtx, err := NewWorkItemsResourceListContext(ctx)
 	if err != nil {
-		ctx.AbortWithError(401, errors.NewBadParameterError("space ID is not a valid UUID", err))
+		abortWithError(ctx, err)
+		return
 	}
 	var additionalQuery []string
-	filter := GetQueryParamAsString(ctx, FilterQueryParam)
-	exp, err := query.Parse(filter)
+	exp, err := query.Parse(listCtx.Filter)
 	if err != nil {
-		ctx.AbortWithError(401, errors.NewBadParameterError("could not parse filter", err))
+		abortWithError(ctx, errors.NewBadParameterError("filter", err))
+		return
 	}
-	expressionFilter := GetQueryParamAsString(ctx, ExpressionFilterQueryParam)
-	if expressionFilter != nil {
-		q := *expressionFilter
+	if listCtx.ExpressionFilter != nil {
+		q := *listCtx.ExpressionFilter
 		// Better approach would be to convert string to Query instance itself.
 		// Then add new AND clause with spaceID as another child of input query
 		// Then convert new Query object into simple string
-		queryWithSpaceID := fmt.Sprintf(`?filter[expression]={"%s":[{"space": "%s" }, %s]}`, search.Q_AND, spaceID, q)
+		queryWithSpaceID := fmt.Sprintf(`?filter[expression]={"%s":[{"space": "%s" }, %s]}`, search.Q_AND, listCtx.SpaceID, q)
 		searchURL := app.SearchHref() + queryWithSpaceID
 		ctx.Header("Location", searchURL)
 		ctx.Status(http.StatusTemporaryRedirect)
 		return
 	}
-	assigneeFilter := GetQueryParamAsString(ctx, AssigneeFilterQueryParam)
-	if assigneeFilter != nil {
-		if *assigneeFilter == none {
+	if listCtx.AssigneeFilter != nil {
+		if *listCtx.AssigneeFilter == none {
 			exp = criteria.And(exp, criteria.IsNull("system.assignees"))
 			additionalQuery = append(additionalQuery, "filter[assignee]=none")
 		} else {
-			exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal([]string{*assigneeFilter})))
-			additionalQuery = append(additionalQuery, "filter[assignee]="+*assigneeFilter)
+			exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal([]string{*listCtx.AssigneeFilter})))
+			additionalQuery = append(additionalQuery, "filter[assignee]="+*listCtx.AssigneeFilter)
 		}
 	}
-	iterationFilter := GetQueryParamAsString(ctx, IterationFilterQueryParam)
-	if iterationFilter != nil {
-		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(string(*iterationFilter))))
-		additionalQuery = append(additionalQuery, "filter[iteration]="+*iterationFilter)
+	if listCtx.IterationFilter != nil {
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(string(*listCtx.IterationFilter))))
+		additionalQuery = append(additionalQuery, "filter[iteration]="+*listCtx.IterationFilter)
 		// Update filter by adding child iterations if any
 		application.Transactional(r.db, func(tx application.Application) error {
-			iterationUUID, errConversion := uuid.FromString(*iterationFilter)
+			iterationUUID, errConversion := uuid.FromString(*listCtx.IterationFilter)
 			if errConversion != nil {
-				ctx.AbortWithError(401, errors.NewBadParameterError("invalid iteration ID", errConversion))
+				ctx.AbortWithError(http.StatusBadRequest, errors.NewBadParameterError("iterationID", errConversion))
 			}
 			childrens, err := tx.Iterations().LoadChildren(ctx, iterationUUID)
 			if err != nil {
-				ctx.AbortWithError(401, errors.NewBadParameterError("unable to fetch children", err))
+				ctx.AbortWithError(http.StatusBadRequest, err)
 			}
 			for _, child := range childrens {
 				childIDStr := child.ID.String()
@@ -107,44 +161,26 @@ func (r WorkItemsResource) List(ctx *gin.Context) {
 			return nil
 		})
 	}
-	workitemTypeFilter, err := GetQueryParamAsUUID(ctx, WorkItemTypeFilterQueryParam)
-	if err != nil {
-		return // context was already aborted
+	if listCtx.WorkitemTypeFilter != nil {
+		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal([]uuid.UUID{*listCtx.WorkitemTypeFilter})))
+		additionalQuery = append(additionalQuery, "filter[workitemtype]="+listCtx.WorkitemTypeFilter.String())
 	}
-	if workitemTypeFilter != nil {
-		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal([]uuid.UUID{*workitemTypeFilter})))
-		additionalQuery = append(additionalQuery, "filter[workitemtype]="+workitemTypeFilter.String())
+	if listCtx.AreaFilter != nil {
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemArea), criteria.Literal(string(*listCtx.AreaFilter))))
+		additionalQuery = append(additionalQuery, "filter[area]="+*listCtx.AreaFilter)
 	}
-	areaFilter := GetQueryParamAsString(ctx, AreaFilterQueryParam)
-	if areaFilter != nil {
-		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemArea), criteria.Literal(string(*areaFilter))))
-		additionalQuery = append(additionalQuery, "filter[area]="+*areaFilter)
+	if listCtx.WorkitemStateFilter != nil {
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemState), criteria.Literal(string(*listCtx.WorkitemStateFilter))))
+		additionalQuery = append(additionalQuery, "filter[workitemstate]="+*listCtx.WorkitemStateFilter)
 	}
-	workitemStateFilter := GetQueryParamAsString(ctx, WorkItemStateFilterQueryParam)
-	if workitemStateFilter != nil {
-		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemState), criteria.Literal(string(*workitemStateFilter))))
-		additionalQuery = append(additionalQuery, "filter[workitemstate]="+*workitemStateFilter)
-	}
-	parentExistsFilter, err := GetQueryParamAsBool(ctx, ParentExistsFilterQueryParam)
-	if err != nil {
-		return // context was already aborted
-	}
-	if parentExistsFilter != nil {
+	if listCtx.ParentExistsFilter != nil {
 		// no need to build expression: it is taken care in wi.List call
 		// we need additionalQuery to make sticky filters in URL links
-		additionalQuery = append(additionalQuery, "filter[parentexists]="+strconv.FormatBool(*parentExistsFilter))
+		additionalQuery = append(additionalQuery, "filter[parentexists]="+strconv.FormatBool(*listCtx.ParentExistsFilter))
 	}
-	pageOffset, err := GetQueryParamAsInt(ctx, PageOffsetQueryParam)
+	workitems, totalCount, err := r.db.WorkItems().List(ctx, listCtx.SpaceID, exp, listCtx.ParentExistsFilter, listCtx.PageOffset, listCtx.PageLimit)
 	if err != nil {
-		return // context was already aborted
-	}
-	pageLimit, err := GetQueryParamAsInt(ctx, PageLimitQueryParam)
-	if err != nil {
-		return // context was already aborted
-	}
-	workitems, totalCount, err := r.db.WorkItems().List(ctx, spaceID, exp, parentExistsFilter, pageOffset, pageLimit)
-	if err != nil {
-		ctx.AbortWithError(500, errors.NewBadParameterError("error listing work items", err))
+		abortWithError(ctx, err)
 	}
 	// hasChildren := workItemIncludeHasChildren(tx, ctx)
 	items := make([]*model.WorkItem, len(workitems)) // has to be an array of pointer
@@ -156,38 +192,56 @@ func (r WorkItemsResource) List(ctx *gin.Context) {
 	p, err := jsonapi.Marshal(items)
 	payload, ok := p.(*jsonapi.ManyPayload)
 	if !ok {
-		ctx.AbortWithError(http.StatusInternalServerError, errs.Wrap(err, "error while preparing the response payload"))
+		abortWithError(ctx, err)
 	}
 	payload.Meta = &jsonapi.Meta{
 		"total-count": totalCount,
 	}
 	payload.Links = &jsonapi.Links{
 		"self": jsonapi.Link{
-			Href: fmt.Sprintf("%[1]s/api/spaces/%[2]s/workitems", r.config.GetAPIServiceURL(), spaceID.String()),
+			Href: fmt.Sprintf("%[1]s/api/spaces/%[2]s/workitems", r.config.GetAPIServiceURL(), listCtx.SpaceID.String()),
 		},
 	}
 	ctx.Status(http.StatusOK)
 	ctx.Header("Content-Type", jsonapi.MediaType)
 	if err := json.NewEncoder(ctx.Writer).Encode(payload); err != nil {
-		ctx.AbortWithError(http.StatusInternalServerError, errs.Wrapf(err, "error while fetching the space with id=%s", spaceID.String()))
+		abortWithError(ctx, err)
+		return
 	}
+}
 
+//WorkItemsResourceShowContext the context to show a work item
+type WorkItemsResourceShowContext struct {
+	WorkitemID uuid.UUID `gin:"param,workitemID"`
+}
+
+//NewWorkItemsResourceShowContext initializes a new WorkItemsResourceShowContext context from the 'gin' context
+func NewWorkItemsResourceShowContext(ctx *gin.Context) (*WorkItemsResourceShowContext, error) {
+	workitemID, err := uuid.FromString(ctx.Param("workitemID")) // the workitem ID param
+	if err != nil {
+		return nil, errors.NewBadParameterError("workitemID", err)
+	}
+	return &WorkItemsResourceShowContext{
+		WorkitemID: workitemID,
+	}, nil
 }
 
 //Show shows a single work item, given the parameters passed in the request URI
 func (r WorkItemsResource) Show(ctx *gin.Context) {
-	workitemID, err := uuid.FromString(ctx.Param("workitemID")) // the workitem ID param
+	showCtx, err := NewWorkItemsResourceShowContext(ctx)
 	if err != nil {
-		ctx.AbortWithError(401, errors.NewBadParameterError("workitem ID is not a valid UUID", err))
+		abortWithError(ctx, err)
+		return
 	}
-	wi, err := r.db.WorkItems().LoadByID(ctx, workitemID)
+	wi, err := r.db.WorkItems().LoadByID(ctx, showCtx.WorkitemID)
 	if err != nil {
-		ctx.AbortWithError(500, errors.NewBadParameterError("error showing work item", err))
+		abortWithError(ctx, err)
+		return
 	}
 	result := model.NewWorkItem(*wi)
 	ctx.Status(http.StatusOK)
 	ctx.Header("Content-Type", jsonapi.MediaType)
 	if err := jsonapi.MarshalPayload(ctx.Writer, result); err != nil {
-		ctx.AbortWithError(http.StatusInternalServerError, errs.Wrapf(err, "error while fetching the work item with id=%s", workitemID.String()))
+		abortWithError(ctx, err)
 	}
 }
