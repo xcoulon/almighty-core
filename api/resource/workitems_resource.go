@@ -11,7 +11,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/errors"
-	"github.com/fabric8-services/fabric8-wit/log"
 	query "github.com/fabric8-services/fabric8-wit/query/simple"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/search"
@@ -36,14 +35,21 @@ const (
 	none                          = "none"
 )
 
+// WorkItemControllerConfig the config interface for the WorkitemController
+type WorkItemsResourceConfiguration interface {
+	GetCacheControlWorkItems() string
+	GetAPIServiceURL() string
+}
+
 // WorkItemsResource the resource for work items
 type WorkItemsResource struct {
-	db application.DB
+	db     application.DB
+	config WorkItemsResourceConfiguration
 }
 
 // NewWorkItemsResource returns a new WorkItemsResource
-func NewWorkItemsResource(db application.DB) WorkItemsResource {
-	return WorkItemsResource{db: db}
+func NewWorkItemsResource(db application.DB, config WorkItemsResourceConfiguration) WorkItemsResource {
+	return WorkItemsResource{db: db, config: config}
 }
 
 //List lists the work items, given the query parameters passed in the context
@@ -151,26 +157,23 @@ func (r WorkItemsResource) List(ctx *gin.Context) {
 			Description: wi.Fields[workitem.SystemDescription].(rendering.MarkupContent).Content,
 		}
 	}
-	// result := model.WorkItems{
-	// 	SpaceID:    spaceID.String(),
-	// 	WorkItems:  items,
-	// 	TotalCount: totalCount,
-	// }
 	// setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(workitems), offset, limit, count, additionalQuery...)
 	// addFilterLinks(response.Links, ctx.RequestData)
-	log.Info(nil, nil, "Marshalling %d items", len(items))
 	p, err := jsonapi.Marshal(items)
 	payload, ok := p.(*jsonapi.ManyPayload)
 	if !ok {
 		ctx.AbortWithError(http.StatusInternalServerError, errs.Wrap(err, "error while preparing the response payload"))
 	}
-	log.Info(nil, nil, "Adding meta total-count")
 	payload.Meta = &jsonapi.Meta{
 		"total-count": totalCount,
 	}
+	payload.Links = &jsonapi.Links{
+		"self": jsonapi.Link{
+			Href: fmt.Sprintf("%[1]s/api/spaces/%[2]s/workitems", r.config.GetAPIServiceURL(), spaceID.String()),
+		},
+	}
 	ctx.Status(http.StatusOK)
 	ctx.Header("Content-Type", jsonapi.MediaType)
-	log.Info(nil, nil, "encoding payload")
 	if err := json.NewEncoder(ctx.Writer).Encode(payload); err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, errs.Wrapf(err, "error while fetching the space with id=%s", spaceID.String()))
 	}

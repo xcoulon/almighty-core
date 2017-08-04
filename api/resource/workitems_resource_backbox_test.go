@@ -32,7 +32,7 @@ func (s *WorkItemsResourceBlackBoxTestSuite) TestListWorkItemsOK() {
 	// r.Header.Set(headerAccept, jsonapi.MediaType)
 
 	rr := httptest.NewRecorder()
-	httpEngine := api.NewGinEngine(gormapplication.NewGormDB(s.DB))
+	httpEngine := api.NewGinEngine(gormapplication.NewGormDB(s.DB), s.Configuration)
 	httpEngine.ServeHTTP(rr, r)
 
 	if e, a := http.StatusOK, rr.Code; e != a {

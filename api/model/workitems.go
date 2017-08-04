@@ -7,35 +7,6 @@ import (
 	"github.com/google/jsonapi"
 )
 
-//WorkItems an array of work items
-type WorkItems struct {
-	SpaceID    string
-	WorkItems  []WorkItem
-	TotalCount int // for the meta/totalCount
-}
-
-// JSONAPILinks returns the links to the list of workitems
-func (w WorkItems) JSONAPILinks() *jsonapi.Links {
-	config := configuration.Get()
-	return &jsonapi.Links{
-		"self": jsonapi.Link{
-			Href: fmt.Sprintf("%[1]s/api/spaces/%[2]s/workitems", config.GetAPIServiceURL(), w.SpaceID),
-		},
-	}
-}
-
-// //JSONAPIRelationshipLinks is invoked for each relationship defined on the Space struct when marshaled
-// func (w WorkItems) JSONAPIRelationshipLinks(relation string) *jsonapi.Links {
-// 	return nil
-// }
-
-// JSONAPIMeta is used to include document meta in response data
-func (w WorkItems) JSONAPIMeta() *jsonapi.Meta {
-	return &jsonapi.Meta{
-		"totalCount": w.TotalCount,
-	}
-}
-
 //WorkItem the WorkItem type of resource to (un)marshall in the JSON-API requests/responses
 type WorkItem struct {
 	ID          string `jsonapi:"primary,workitems"`
