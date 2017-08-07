@@ -16,7 +16,7 @@ func NewGinEngine(appDB *gormapplication.GormDB, config *configuration.Configura
 	authMiddleware := NewJWTAuthMiddleware(appDB)
 	spacesResource := resource.NewSpacesResource(appDB)
 	workitemsResource := resource.NewWorkItemsResource(appDB, config)
-	// httpEngine.POST("/api/login", authMiddleware.LoginHandler)
+	httpEngine.GET("/api/spaces", spacesResource.List)
 	httpEngine.GET("/api/spaces/:spaceID", spacesResource.GetByID)
 	httpEngine.GET("/api/spaces/:spaceID/workitems", workitemsResource.List)
 	httpEngine.GET("/api/workitems/:workitemID", workitemsResource.Show)
