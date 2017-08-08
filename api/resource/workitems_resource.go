@@ -8,10 +8,12 @@ import (
 	"github.com/fabric8-services/fabric8-wit/api/model"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
 	query "github.com/fabric8-services/fabric8-wit/query/simple"
+	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/search"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/gin-gonic/gin"
@@ -281,20 +283,32 @@ func NewWorkItemsResourceCreateContext(ctx *gin.Context) (*WorkItemsResourceCrea
 	}, nil
 }
 
-// //Create creates a new work item, given the JSON-API content passed in the request body
-// func (r WorkItemsResource) Create(ctx *gin.Context) {
-// 	createCtx, err := NewWorkItemsResourceCreateContext(ctx)
-// 	if err != nil {
-// 		abortWithError(ctx, err)
-// 		return
-// 	}
-// 	payloadWI := createCtx.WorkItem
-// 	createdWI, err := r.db.WorkItems().Create(ctx, showCtx.SpaceID, payloadWI.TypeID, payloadWI.Fields, nil)
-// 	if err != nil {
-// 		abortWithError(ctx, err)
-// 		return
-// 	}
-// 	location :=
-// 		createCtx.Created(createdWI, location)
-
-// }
+//Create creates a new work item, given the JSON-API content passed in the request body
+func (r WorkItemsResource) Create(ctx *gin.Context) {
+	createCtx, err := NewWorkItemsResourceCreateContext(ctx)
+	if err != nil {
+		abortWithError(ctx, err)
+		return
+	}
+	payloadWI := createCtx.WorkItem
+	fields := make(map[string]interface{})
+	fields[workitem.SystemTitle] = payloadWI.Title
+	fields[workitem.SystemDescription] = rendering.NewMarkupContentFromLegacy(payloadWI.Description)
+	fields[workitem.SystemState] = payloadWI.State
+	if createCtx.WorkItem.Type == nil {
+		abortWithError(ctx, errors.NewBadParameterError("type", err))
+	}
+	wiType, err := uuid.FromString(createCtx.WorkItem.Type.ID)
+	if err != nil {
+		abortWithError(ctx, errors.NewBadParameterError("type", err))
+	}
+	creatorID, _ := uuid.FromString("e1e9b60a-0c8d-4450-83d3-b2dc44a8bc1c")
+	createdWI, err := r.db.WorkItems().Create(ctx, createCtx.SpaceID, wiType, fields, creatorID)
+	if err != nil {
+		abortWithError(ctx, err)
+		return
+	}
+	config := configuration.Get()
+	location := fmt.Sprintf("%[1]s/api/workitems/%[2]s", config.GetAPIServiceURL(), createdWI.ID)
+	createCtx.Created(createdWI, location)
+}

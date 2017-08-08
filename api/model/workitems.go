@@ -14,6 +14,7 @@ type WorkItem struct {
 	ID          string `jsonapi:"primary,workitems"`
 	SpaceID     string
 	Title       string        `jsonapi:"attr,title"`
+	State       string        `jsonapi:"attr,state"`
 	Description string        `jsonapi:"attr,description"`
 	Type        *WorkItemType `jsonapi:"relation,baseType"` // 'relation' fields must be pointers
 }
