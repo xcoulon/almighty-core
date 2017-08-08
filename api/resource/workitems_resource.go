@@ -10,6 +10,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/log"
 	query "github.com/fabric8-services/fabric8-wit/query/simple"
 	"github.com/fabric8-services/fabric8-wit/search"
 	"github.com/fabric8-services/fabric8-wit/workitem"
@@ -66,7 +67,7 @@ type WorkItemsResourceListContext struct {
 
 // Note: this kind of function could be generated, based on struct tags on WorkItemsResourceListContext fields.
 func NewWorkItemsResourceListContext(ctx *gin.Context) (*WorkItemsResourceListContext, error) {
-	spaceID, err := GetQueryParamAsUUID(ctx, "spaceID")
+	spaceID, err := GetParamAsUUID(ctx, "spaceID")
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +93,6 @@ func NewWorkItemsResourceListContext(ctx *gin.Context) (*WorkItemsResourceListCo
 	if err != nil {
 		return nil, err
 	}
-
 	return &WorkItemsResourceListContext{
 		Context:             ctx,
 		SpaceID:             *spaceID,
@@ -244,9 +244,57 @@ func (r WorkItemsResource) Show(ctx *gin.Context) {
 	}
 	wi, err := r.db.WorkItems().LoadByID(ctx, showCtx.WorkitemID)
 	if err != nil {
+		log.Warn(ctx, nil, "Aborting with error: %s", err.Error())
 		abortWithError(ctx, err)
 		return
 	}
 	result := model.NewWorkItem(*wi)
+	log.Info(ctx, map[string]interface{}{"wi_id": result.ID, "type_id": result.Type.ID}, "Returning work item: %+v", result)
 	showCtx.OK(result)
 }
+
+type WorkItemsResourceCreateContext struct {
+	*gin.Context
+	SpaceID  uuid.UUID      `gin:"param,spaceID"`
+	WorkItem model.WorkItem `gin:"body"`
+}
+
+// Created Responds with a '201 Created' response
+func (ctx *WorkItemsResourceCreateContext) Created(result interface{}, location string) {
+	Created(ctx.Context, result, location)
+}
+
+//NewWorkItemsResourceCreateContext initializes a new WorkItemsResourceCreateContext context from the 'gin' context
+func NewWorkItemsResourceCreateContext(ctx *gin.Context) (*WorkItemsResourceCreateContext, error) {
+	spaceID, err := GetParamAsUUID(ctx, "spaceID")
+	if err != nil {
+		return nil, err
+	}
+	payloadItem := model.WorkItem{}
+	if err := jsonapi.UnmarshalPayload(ctx.Request.Body, &payloadItem); err != nil {
+		return nil, err
+	}
+	return &WorkItemsResourceCreateContext{
+		Context:  ctx,
+		SpaceID:  *spaceID,
+		WorkItem: payloadItem,
+	}, nil
+}
+
+// //Create creates a new work item, given the JSON-API content passed in the request body
+// func (r WorkItemsResource) Create(ctx *gin.Context) {
+// 	createCtx, err := NewWorkItemsResourceCreateContext(ctx)
+// 	if err != nil {
+// 		abortWithError(ctx, err)
+// 		return
+// 	}
+// 	payloadWI := createCtx.WorkItem
+// 	createdWI, err := r.db.WorkItems().Create(ctx, showCtx.SpaceID, payloadWI.TypeID, payloadWI.Fields, nil)
+// 	if err != nil {
+// 		abortWithError(ctx, err)
+// 		return
+// 	}
+// 	location :=
+// 		createCtx.Created(createdWI, location)
+
+// }

@@ -27,12 +27,13 @@ func NewSpacesResource(db application.DB) SpacesResource {
 func (r SpacesResource) GetByID(ctx *gin.Context) {
 	spaceID, err := uuid.FromString(ctx.Param("spaceID"))
 	if err != nil {
-		ctx.AbortWithError(http.StatusBadRequest, errs.Wrapf(err, "the space ID is not a valid UUID"))
+		abortWithError(ctx, errs.Wrapf(err, "the space ID is not a valid UUID"))
+		return
 	}
 	s, err := r.db.Spaces().Load(ctx, spaceID)
 	if err != nil {
 		//TODO: retrieve the correct HTTP status for the given err
-		ctx.AbortWithError(http.StatusInternalServerError, errs.Wrapf(err, "error while fetching the space with id=%s", spaceID.String()))
+		abortWithError(ctx, errs.Wrapf(err, "error while fetching the space with id=%s", spaceID.String()))
 	}
 	// convert the business-domain 'space' into a jsonapi-model space
 	result := model.Space{

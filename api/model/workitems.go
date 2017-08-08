@@ -13,8 +13,9 @@ import (
 type WorkItem struct {
 	ID          string `jsonapi:"primary,workitems"`
 	SpaceID     string
-	Title       string `jsonapi:"attr,title"`
-	Description string `jsonapi:"attr,description"`
+	Title       string        `jsonapi:"attr,title"`
+	Description string        `jsonapi:"attr,description"`
+	Type        *WorkItemType `jsonapi:"relation,baseType"` // 'relation' fields must be pointers
 }
 
 // NewWorkItem initializes a new WorkItem from the given model
@@ -24,6 +25,7 @@ func NewWorkItem(wi workitem.WorkItem) *WorkItem {
 		SpaceID:     wi.SpaceID.String(),
 		Title:       wi.Fields[workitem.SystemTitle].(string),
 		Description: wi.Fields[workitem.SystemDescription].(rendering.MarkupContent).Content,
+		Type:        &WorkItemType{ID: wi.Type.String()},
 	}
 }
 
@@ -37,8 +39,16 @@ func (w WorkItem) JSONAPILinks() *jsonapi.Links {
 	}
 }
 
-//JSONAPIRelationshipLinks is invoked for each relationship defined on the Space struct when marshaled
+//JSONAPIRelationshipLinks is invoked for each relationship defined on the WorkItem struct when marshalled
 func (w WorkItem) JSONAPIRelationshipLinks(relation string) *jsonapi.Links {
+	config := configuration.Get()
+	if relation == "baseType" {
+		return &jsonapi.Links{
+			"self": jsonapi.Link{
+				Href: fmt.Sprintf("%[1]s/api/workitemtypes/%[2]s", config.GetAPIServiceURL(), w.ID),
+			},
+		}
+	}
 	return nil
 }
 

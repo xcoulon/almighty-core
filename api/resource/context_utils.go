@@ -18,7 +18,6 @@ func OK(ctx *gin.Context, result interface{}) {
 	ctx.Header("Content-Type", jsonapi.MediaType)
 	switch result := result.(type) {
 	case jsonapi.ManyPayload:
-		ctx.Status(http.StatusOK)
 		ctx.Header("Content-Type", jsonapi.MediaType)
 		if err := json.NewEncoder(ctx.Writer).Encode(result); err != nil {
 			abortWithError(ctx, err)
@@ -28,6 +27,16 @@ func OK(ctx *gin.Context, result interface{}) {
 		if err := jsonapi.MarshalPayload(ctx.Writer, result); err != nil {
 			abortWithError(ctx, err)
 		}
+	}
+}
+
+// Created Responds with a '201 Created' response with response body and a 'Location' header
+func Created(ctx *gin.Context, result interface{}, location string) {
+	ctx.Status(http.StatusCreated)
+	ctx.Header("Content-Type", jsonapi.MediaType)
+	ctx.Header("Location", location)
+	if err := jsonapi.MarshalPayload(ctx.Writer, result); err != nil {
+		abortWithError(ctx, err)
 	}
 }
 

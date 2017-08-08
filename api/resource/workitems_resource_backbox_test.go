@@ -25,7 +25,23 @@ func TestWorkItemsResource(t *testing.T) {
 }
 
 func (s *WorkItemsResourceBlackBoxTestSuite) TestListWorkItemsOK() {
-	r, err := http.NewRequest(http.MethodGet, "/api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2", nil)
+	r, err := http.NewRequest(http.MethodGet, "/api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2/workitems", nil)
+	if err != nil {
+		s.T().Fatal(err)
+	}
+	// r.Header.Set(headerAccept, jsonapi.MediaType)
+
+	rr := httptest.NewRecorder()
+	httpEngine := api.NewGinEngine(gormapplication.NewGormDB(s.DB), s.Configuration)
+	httpEngine.ServeHTTP(rr, r)
+
+	if e, a := http.StatusOK, rr.Code; e != a {
+		s.T().Fatalf("Expected a status of %d, got %d", e, a)
+	}
+}
+
+func (s *WorkItemsResourceBlackBoxTestSuite) TestShowWorkItemOK() {
+	r, err := http.NewRequest(http.MethodGet, "/api/workitems/c870914b-7942-4b87-8271-3afda49004e0", nil)
 	if err != nil {
 		s.T().Fatal(err)
 	}
