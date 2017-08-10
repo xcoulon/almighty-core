@@ -53,6 +53,10 @@ imports:
   subpackages:
   - binding
   - render
+- name: github.com/appleboy/gin-jwt
+  version: f7347d7c16fc8297bf5b7215b9e4847a5ca05d90
+- name: gopkg.in/dgrijalva/jwt-go.v3
+  version: d2709f9f1f31ebcda9651b03077758c1f3a0018c
 - name: github.com/goadesign/goa
   version: 58f3177f36f2c50ee6119da92795e48bac6d6243
   vcs: git

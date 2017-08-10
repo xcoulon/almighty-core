@@ -2,6 +2,7 @@ package token
 
 import (
 	"crypto/rsa"
+	"fmt"
 
 	"context"
 
@@ -40,6 +41,7 @@ func NewManagerWithPrivateKey(privateKey *rsa.PrivateKey) Manager {
 }
 
 func (mgm tokenManager) Extract(tokenString string) (*account.Identity, error) {
+	fmt.Printf("Extracting from '%s'\n", tokenString)
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return mgm.publicKey, nil
 	})

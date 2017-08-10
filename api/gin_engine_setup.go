@@ -13,11 +13,17 @@ func NewGinEngine(appDB *gormapplication.GormDB, config *configuration.Configura
 	httpEngine.GET("/ping", func(c *gin.Context) {
 		c.String(200, "pong")
 	})
+	authMiddleware := NewJWTAuthMiddleware(appDB)
 	spacesResource := resource.NewSpacesResource(appDB)
 	workitemsResource := resource.NewWorkItemsResource(appDB, config)
+	// httpEngine.POST("/api/login", authMiddleware.LoginHandler)
 	httpEngine.GET("/api/spaces/:spaceID", spacesResource.GetByID)
 	httpEngine.GET("/api/spaces/:spaceID/workitems", workitemsResource.List)
-	httpEngine.POST("/api/spaces/:spaceID/workitems", workitemsResource.Create)
 	httpEngine.GET("/api/workitems/:workitemID", workitemsResource.Show)
+	// secured endpoints
+	authGroup := httpEngine.Group("/")
+	authGroup.Use(authMiddleware.MiddlewareFunc())
+	authGroup.GET("/refresh_token", authMiddleware.RefreshHandler)
+	authGroup.POST("/api/spaces/:spaceID/workitems", workitemsResource.Create)
 	return httpEngine
 }
