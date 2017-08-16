@@ -3,19 +3,14 @@ package resource_test
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"testing"
-	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/fabric8-services/fabric8-wit/api"
 	"github.com/fabric8-services/fabric8-wit/api/model"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/google/jsonapi"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -33,34 +28,14 @@ func TestWorkItemsResource(t *testing.T) {
 
 func (s *WorkItemsResourceBlackBoxTestSuite) TestListWorkItemsOK() {
 	r, err := http.NewRequest(http.MethodGet, "/api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2/workitems", nil)
-	if err != nil {
-		s.T().Fatal(err)
-	}
-	// r.Header.Set(headerAccept, jsonapi.MediaType)
-
-	rr := httptest.NewRecorder()
-	httpEngine := api.NewGinEngine(gormapplication.NewGormDB(s.DB), s.Configuration)
-	httpEngine.ServeHTTP(rr, r)
-
-	if e, a := http.StatusOK, rr.Code; e != a {
-		s.T().Fatalf("Expected a status of %d, got %d", e, a)
-	}
+	require.Nil(s.T(), err)
+	verify(s.T(), http.StatusOK)
 }
 
 func (s *WorkItemsResourceBlackBoxTestSuite) TestShowWorkItemOK() {
 	r, err := http.NewRequest(http.MethodGet, "/api/workitems/c870914b-7942-4b87-8271-3afda49004e0", nil)
-	if err != nil {
-		s.T().Fatal(err)
-	}
-	// r.Header.Set(headerAccept, jsonapi.MediaType)
-
-	rr := httptest.NewRecorder()
-	httpEngine := api.NewGinEngine(gormapplication.NewGormDB(s.DB), s.Configuration)
-	httpEngine.ServeHTTP(rr, r)
-
-	if e, a := http.StatusOK, rr.Code; e != a {
-		s.T().Fatalf("Expected a status of %d, got %d", e, a)
-	}
+	require.Nil(s.T(), err)
+	verify(s.T(), http.StatusOK)
 }
 
 func (s *WorkItemsResourceBlackBoxTestSuite) TestCreateWorkItemOK() {
@@ -74,22 +49,12 @@ func (s *WorkItemsResourceBlackBoxTestSuite) TestCreateWorkItemOK() {
 		},
 	}
 	payload := bytes.NewBuffer(make([]byte, 0))
-	if err := jsonapi.MarshalPayload(payload, &wi); err != nil {
-		s.T().Fatal(err)
-	}
+	err := jsonapi.MarshalPayload(payload, &wi)
+	require.Nil(s.T(), err)
 	r, err := http.NewRequest(http.MethodPost, "/api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2/workitems", payload)
-	if err != nil {
-		s.T().Fatal(err)
-	}
-	// generate/sign an auth token
+	require.Nil(s.T(), err) // generate/sign an auth token
 	r.Header.Set("Authorization", "Bearer "+makeTokenString("HS256", testIdentity.ID.String()))
-	rr := httptest.NewRecorder()
-	httpEngine := api.NewGinEngine(gormapplication.NewGormDB(s.DB), s.Configuration)
-	httpEngine.ServeHTTP(rr, r)
-	if e, a := http.StatusCreated, rr.Code; e != a {
-		s.T().Logf("Response body: \n%v", rr.Body.String())
-		s.T().Fatalf("Expected a status of %d, got %d", e, a)
-	}
+	verify(s.T(), http.StatusCreated)
 }
 
 func (s *WorkItemsResourceBlackBoxTestSuite) TestCreateWorkItemKOMissingJWT() {
@@ -102,22 +67,11 @@ func (s *WorkItemsResourceBlackBoxTestSuite) TestCreateWorkItemKOMissingJWT() {
 		},
 	}
 	payload := bytes.NewBuffer(make([]byte, 0))
-	if err := jsonapi.MarshalPayload(payload, &wi); err != nil {
-		s.T().Fatal(err)
-	}
+	err := jsonapi.MarshalPayload(payload, &wi)
+	require.Nil(s.T(), err)
 	r, err := http.NewRequest(http.MethodPost, "/api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2/workitems", payload)
-	if err != nil {
-		s.T().Fatal(err)
-	}
-
-	rr := httptest.NewRecorder()
-	httpEngine := api.NewGinEngine(gormapplication.NewGormDB(s.DB), s.Configuration)
-	httpEngine.ServeHTTP(rr, r)
-	// s.T().Logf("Response body: \n%v", rr.Body.String())
-	if e, a := http.StatusUnauthorized, rr.Code; e != a {
-		s.T().Logf("Response body: \n%v", rr.Body.String())
-		s.T().Fatalf("Expected a status of %d, got %d", e, a)
-	}
+	require.Nil(s.T(), err)
+	verify(s.T(), http.StatusUnauthorized)
 }
 
 func (s *WorkItemsResourceBlackBoxTestSuite) TestCreateWorkItemKOInvalidCredentials() {
@@ -130,38 +84,11 @@ func (s *WorkItemsResourceBlackBoxTestSuite) TestCreateWorkItemKOInvalidCredenti
 		},
 	}
 	payload := bytes.NewBuffer(make([]byte, 0))
-	if err := jsonapi.MarshalPayload(payload, &wi); err != nil {
-		s.T().Fatal(err)
-	}
+	err := jsonapi.MarshalPayload(payload, &wi)
+	require.Nil(s.T(), err)
 	r, err := http.NewRequest(http.MethodPost, "/api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2/workitems", payload)
-	if err != nil {
-		s.T().Fatal(err)
-	}
+	require.Nil(s.T(), err)
 	// generate/sign an auth token
 	r.Header.Set("Authorization", "Bearer "+makeTokenString("HS256", "foo"))
-
-	rr := httptest.NewRecorder()
-	httpEngine := api.NewGinEngine(gormapplication.NewGormDB(s.DB), s.Configuration)
-	httpEngine.ServeHTTP(rr, r)
-	// s.T().Logf("Response body: \n%v", rr.Body.String())
-	if e, a := http.StatusForbidden, rr.Code; e != a {
-		s.T().Logf("Response body: \n%v", rr.Body.String())
-		s.T().Fatalf("Expected a status of %d, got %d", e, a)
-	}
-}
-
-func makeTokenString(SigningAlgorithm string, identity string) string {
-	if SigningAlgorithm == "" {
-		SigningAlgorithm = "HS256"
-	}
-	token := jwt.New(jwt.GetSigningMethod(SigningAlgorithm))
-	claims := token.Claims.(jwt.MapClaims)
-	claims["sub"] = identity // subject
-	claims["exp"] = time.Now().Add(time.Hour).Unix()
-	claims["orig_iat"] = time.Now().Unix()
-	// config := configuration.Get()
-	tss, _ := token.SigningString()
-	fmt.Printf("Submitted signing string: '%v'\n", tss)
-	tokenString, _ := token.SignedString(api.Key)
-	return tokenString
+	verify(s.T(), http.StatusForbidden)
 }
