@@ -29,13 +29,13 @@ func TestWorkItemsResource(t *testing.T) {
 func (s *WorkItemsResourceBlackBoxTestSuite) TestListWorkItemsOK() {
 	r, err := http.NewRequest(http.MethodGet, "/api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2/workitems", nil)
 	require.Nil(s.T(), err)
-	verify(s.T(), http.StatusOK)
+	verify(s.DBTestSuite, r, http.StatusOK)
 }
 
 func (s *WorkItemsResourceBlackBoxTestSuite) TestShowWorkItemOK() {
 	r, err := http.NewRequest(http.MethodGet, "/api/workitems/c870914b-7942-4b87-8271-3afda49004e0", nil)
 	require.Nil(s.T(), err)
-	verify(s.T(), http.StatusOK)
+	verify(s.DBTestSuite, r, http.StatusOK)
 }
 
 func (s *WorkItemsResourceBlackBoxTestSuite) TestCreateWorkItemOK() {
@@ -54,7 +54,7 @@ func (s *WorkItemsResourceBlackBoxTestSuite) TestCreateWorkItemOK() {
 	r, err := http.NewRequest(http.MethodPost, "/api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2/workitems", payload)
 	require.Nil(s.T(), err) // generate/sign an auth token
 	r.Header.Set("Authorization", "Bearer "+makeTokenString("HS256", testIdentity.ID.String()))
-	verify(s.T(), http.StatusCreated)
+	verify(s.DBTestSuite, r, http.StatusCreated)
 }
 
 func (s *WorkItemsResourceBlackBoxTestSuite) TestCreateWorkItemKOMissingJWT() {
@@ -71,7 +71,7 @@ func (s *WorkItemsResourceBlackBoxTestSuite) TestCreateWorkItemKOMissingJWT() {
 	require.Nil(s.T(), err)
 	r, err := http.NewRequest(http.MethodPost, "/api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2/workitems", payload)
 	require.Nil(s.T(), err)
-	verify(s.T(), http.StatusUnauthorized)
+	verify(s.DBTestSuite, r, http.StatusUnauthorized)
 }
 
 func (s *WorkItemsResourceBlackBoxTestSuite) TestCreateWorkItemKOInvalidCredentials() {
@@ -90,5 +90,5 @@ func (s *WorkItemsResourceBlackBoxTestSuite) TestCreateWorkItemKOInvalidCredenti
 	require.Nil(s.T(), err)
 	// generate/sign an auth token
 	r.Header.Set("Authorization", "Bearer "+makeTokenString("HS256", "foo"))
-	verify(s.T(), http.StatusForbidden)
+	verify(s.DBTestSuite, r, http.StatusForbidden)
 }

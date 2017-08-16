@@ -112,8 +112,12 @@ func NewWorkItemsResourceListContext(ctx *gin.Context) (*WorkItemsResourceListCo
 }
 
 // OK Responds with a '200 OK' response
-func (ctx *WorkItemsResourceListContext) OK(result interface{}) {
-	OK(ctx.Context, result)
+func (ctx *WorkItemsResourceListContext) OK(result interface{}) error {
+	return OK(ctx.Context, result)
+}
+
+func (ctx *WorkItemsResourceListContext) NotModified() error {
+	return NotModified(ctx.Context)
 }
 
 //List lists the work items, given the query parameters passed in the request URI
@@ -191,27 +195,30 @@ func (r WorkItemsResource) List(ctx *gin.Context) {
 	if err != nil {
 		abortWithError(ctx, err)
 	}
-	// hasChildren := workItemIncludeHasChildren(tx, ctx)
-	items := make([]*model.WorkItem, len(workitems)) // has to be an array of pointer
-	for i, wi := range workitems {
-		items[i] = model.NewWorkItem(wi)
-	}
-	// setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(workitems), offset, limit, count, additionalQuery...)
-	// addFilterLinks(response.Links, ctx.RequestData)
-	p, err := jsonapi.Marshal(items)
-	payload, ok := p.(*jsonapi.ManyPayload)
-	if !ok {
-		abortWithError(ctx, err)
-	}
-	payload.Meta = &jsonapi.Meta{
-		"total-count": totalCount,
-	}
-	payload.Links = &jsonapi.Links{
-		"self": jsonapi.Link{
-			Href: fmt.Sprintf("%[1]s/api/spaces/%[2]s/workitems", r.config.GetAPIServiceURL(), listCtx.SpaceID.String()),
-		},
-	}
-	listCtx.OK(payload)
+	listCtx.ConditionalEntities(workitems, r.config.GetCacheControlWorkItems, func() {
+		// hasChildren := workItemIncludeHasChildren(tx, ctx)
+		items := make([]*model.WorkItem, len(workitems)) // has to be an array of pointer
+		for i, wi := range workitems {
+			items[i] = model.NewWorkItem(wi)
+		}
+		// setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(workitems), offset, limit, count, additionalQuery...)
+		// addFilterLinks(response.Links, ctx.RequestData)
+		p, err := jsonapi.Marshal(items)
+		payload, ok := p.(*jsonapi.ManyPayload)
+		if !ok {
+			abortWithError(ctx, err)
+		}
+		payload.Meta = &jsonapi.Meta{
+			"total-count": totalCount,
+		}
+		payload.Links = &jsonapi.Links{
+			"self": jsonapi.Link{
+				Href: fmt.Sprintf("%[1]s/api/spaces/%[2]s/workitems", r.config.GetAPIServiceURL(), listCtx.SpaceID.String()),
+			},
+		}
+		listCtx.OK(payload)
+
+	})
 }
 
 //WorkItemsResourceShowContext the context to show a work item

@@ -1,11 +1,15 @@
 package resource_test
 
 import (
+	"fmt"
+	"net/http"
 	"net/http/httptest"
-	"testing"
+	"time"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/api"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 )
 
 func makeTokenString(SigningAlgorithm string, identity string) string {
@@ -24,7 +28,7 @@ func makeTokenString(SigningAlgorithm string, identity string) string {
 	return tokenString
 }
 
-func verify(t *testing.T, expectedStatusCode int) {
+func verify(s gormtestsupport.DBTestSuite, r *http.Request, expectedStatusCode int) {
 	rr := httptest.NewRecorder()
 	httpEngine := api.NewGinEngine(gormapplication.NewGormDB(s.DB), s.Configuration)
 	httpEngine.ServeHTTP(rr, r)

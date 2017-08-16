@@ -13,7 +13,7 @@ import (
 )
 
 // OK Responds with a '200 OK' response
-func OK(ctx *gin.Context, result interface{}) {
+func OK(ctx *gin.Context, result interface{}) error {
 	ctx.Status(http.StatusOK)
 	ctx.Header("Content-Type", jsonapi.MediaType)
 	switch result := result.(type) {
@@ -21,13 +21,21 @@ func OK(ctx *gin.Context, result interface{}) {
 		ctx.Header("Content-Type", jsonapi.MediaType)
 		if err := json.NewEncoder(ctx.Writer).Encode(result); err != nil {
 			abortWithError(ctx, err)
-			return
+			return err
 		}
 	default:
 		if err := jsonapi.MarshalPayload(ctx.Writer, result); err != nil {
 			abortWithError(ctx, err)
+			return err
 		}
 	}
+	return nil
+}
+
+// NotModified Responds with a '304 NotModified' response
+func NotModified(ctx *gin.Context) error {
+	ctx.Status(http.StatusNotModified)
+	return nil
 }
 
 // Created Responds with a '201 Created' response with response body and a 'Location' header
