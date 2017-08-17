@@ -1,25 +1,31 @@
-package api
+package handler
 
 import (
+	"context"
 	"strconv"
 	"time"
 
 	"github.com/google/jsonapi"
+	uuid "github.com/satori/go.uuid"
 	// jwt "github.com/dgrijalva/jwt-go"
 	ginjwt "github.com/appleboy/gin-jwt"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/space/authz"
+	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/gin-gonic/gin"
+	errs "github.com/pkg/errors"
 	jwt "gopkg.in/dgrijalva/jwt-go.v3"
 )
 
-//Key the key for signing and verifying the JWT
-var Key []byte
+//SigningKey the key for signing and verifying the JWT
+var SigningKey []byte
 
 func init() {
 	config := configuration.Get()
-	Key = config.GetTokenPrivateKey()
+	SigningKey = config.GetTokenPrivateKey()
 }
 
 // NewJWTAuthMiddleware initialises the JWT auth middleware
@@ -28,7 +34,7 @@ func NewJWTAuthMiddleware(db application.DB) *ginjwt.GinJWTMiddleware {
 
 	return &ginjwt.GinJWTMiddleware{
 		Realm:      config.GetKeycloakRealm(),
-		Key:        Key, // will switch to public/private key once RSA256 is supported
+		Key:        SigningKey, // will switch to public/private key once RSA256 is supported
 		Timeout:    time.Hour,
 		MaxRefresh: time.Hour,
 		// signing algorithm - possible values are HS256, HS384, HS512
@@ -66,41 +72,33 @@ func NewJWTAuthMiddleware(db application.DB) *ginjwt.GinJWTMiddleware {
 	}
 }
 
+const (
+	SUBJECT_CLAIM string = "sub"
+	USER_ID       string = "user_id"
+)
+
 // NewIdentityHandler returns a new identity handler that will look for the `subject` claim in the JWT
 func NewIdentityHandler() func(jwt.MapClaims) string {
 	return func(claims jwt.MapClaims) string {
-		if subject, ok := claims["sub"]; ok {
+		if subject, ok := claims[SUBJECT_CLAIM]; ok {
 			return subject.(string)
 		}
-		log.Warn(nil, nil, "JWT did not contain any `sub` claim.")
+		log.Warn(nil, nil, "JWT did not contain any `sub` (subject) claim.")
 		return ""
 	}
 }
 
-//NewAuthenticationHandler initializes the authorizator handler of the JWT Auth middleware
-// func NewAuthenticationHandler(db application.DB) func(string, *gin.Context) bool {
-// 	return func(userID string, ctx *gin.Context) bool {
-// 		log.Info(ctx, map[string]interface{}{"userID": userID}, "authorizing user...")
-// 		err := db.Identities().CheckExists(ctx, userID)
-// 		if err != nil {
-// 			log.Error(ctx, map[string]interface{}{"userID": userID}, "user NOT authorized")
-// 			return false
-// 		}
-// 		log.Debug(ctx, map[string]interface{}{"userID": userID}, "user authorized")
-// 		return true
-// 	}
-// }
-
 //NewAuthorizatorHandler initializes the authorizator handler of the JWT Auth middleware
 func NewAuthorizatorHandler(db application.DB) func(string, *gin.Context) bool {
 	return func(userID string, ctx *gin.Context) bool {
-		log.Info(ctx, map[string]interface{}{"userID": userID}, "authorizing user...")
+		log.Debug(ctx, map[string]interface{}{"userID": userID}, "authorizing user...")
 		err := db.Identities().CheckExists(ctx, userID)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{"userID": userID}, "user NOT authorized")
 			return false
 		}
 		log.Debug(ctx, map[string]interface{}{"userID": userID}, "user authorized")
+		ctx.Set(USER_ID, userID)
 		return true
 	}
 }
@@ -116,4 +114,61 @@ func NewUnauthorizedHandler() func(*gin.Context, int, string) {
 			Meta:   &map[string]interface{}{"error": message},
 		}})
 	}
+}
+
+//GetUserID returns the ID of the current user as a UUID or an error if something wrong happened (key not found or not an UUID)
+func GetUserID(ctx *gin.Context) (*uuid.UUID, error) {
+	if ctxValue, ok := ctx.Get(USER_ID); ok {
+		if ctxValueStr, ok := ctxValue.(string); ok {
+			userID, err := uuid.FromString(ctxValueStr)
+			if err != nil {
+				return nil, errs.Wrapf(err, "failed to parse user id value '%s' as a UUID", ctxValueStr)
+			}
+			return &userID, nil
+		}
+		return nil, errs.Errorf("request context did not contain a valid UUID entry for the current user's ID: '%s'", ctxValue)
+	}
+	return nil, errs.New("request context did not contain an entry for the current user's ID")
+}
+
+//NewWorkItemUpdateAuthorizator returns a new handler that checks if the current user is allowed to edit the work item
+func NewWorkItemUpdateAuthorizator(db application.DB) func(*gin.Context) {
+	return func(ctx *gin.Context) {
+		workitemID, err := uuid.FromString(ctx.Param("workitemID")) // the workitem ID param
+		if err != nil {
+			abortWithError(ctx, err)
+			return
+		}
+		wi, err := db.WorkItems().LoadByID(ctx, workitemID)
+		if err != nil {
+			abortWithError(ctx, err)
+			return
+		}
+		creator := wi.Fields[workitem.SystemCreator]
+		if creator == nil {
+			abortWithError(ctx, errors.NewBadParameterError("workitem.SystemCreator", nil))
+		}
+		currentUserID, _ := GetUserID(ctx)
+
+		authorized, err := authorizeWorkitemEditor(ctx, db, wi.SpaceID, creator.(string), currentUserID.String())
+		if err != nil {
+			abortWithError(ctx, err)
+			return
+		}
+		if !authorized {
+			abortWithError(ctx, errors.NewForbiddenError("user is not allowed to update this work item"))
+		}
+	}
+}
+
+// Returns true if the user is the work item creator or space collaborator
+func authorizeWorkitemEditor(ctx context.Context, db application.DB, spaceID uuid.UUID, creatorID string, editorID string) (bool, error) {
+	if editorID == creatorID {
+		return true, nil
+	}
+	authorized, err := authz.Authorize(ctx, spaceID.String())
+	if err != nil {
+		return false, errors.NewUnauthorizedError(err.Error())
+	}
+	return authorized, nil
 }

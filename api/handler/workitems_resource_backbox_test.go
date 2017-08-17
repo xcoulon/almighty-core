@@ -1,4 +1,4 @@
-package resource_test
+package handler_test
 
 import (
 	"bytes"
@@ -40,10 +40,13 @@ func (s *WorkItemsResourceBlackBoxTestSuite) TestShowWorkItemOK() {
 
 func (s *WorkItemsResourceBlackBoxTestSuite) TestCreateWorkItemOK() {
 	testIdentity := createOneRandomUserIdentity(context.Background(), s.DB)
+	title := "A title"
+	description := "A description"
+	state := workitem.SystemStateNew
 	wi := model.WorkItem{
-		Title:       "A title",
-		Description: "A description",
-		State:       workitem.SystemStateNew,
+		Title:       &title,
+		Description: &description,
+		State:       &state,
 		Type: &model.WorkItemType{
 			ID: "26787039-b68f-4e28-8814-c2f93be1ef4e",
 		},
@@ -58,10 +61,13 @@ func (s *WorkItemsResourceBlackBoxTestSuite) TestCreateWorkItemOK() {
 }
 
 func (s *WorkItemsResourceBlackBoxTestSuite) TestCreateWorkItemKOMissingJWT() {
+	title := "A title"
+	description := "A description"
+	state := workitem.SystemStateNew
 	wi := model.WorkItem{
-		Title:       "A title",
-		Description: "A description",
-		State:       workitem.SystemStateNew,
+		Title:       &title,
+		Description: &description,
+		State:       &state,
 		Type: &model.WorkItemType{
 			ID: "26787039-b68f-4e28-8814-c2f93be1ef4e",
 		},
@@ -75,10 +81,13 @@ func (s *WorkItemsResourceBlackBoxTestSuite) TestCreateWorkItemKOMissingJWT() {
 }
 
 func (s *WorkItemsResourceBlackBoxTestSuite) TestCreateWorkItemKOInvalidCredentials() {
+	title := "A title"
+	description := "A description"
+	state := workitem.SystemStateNew
 	wi := model.WorkItem{
-		Title:       "A title",
-		Description: "A description",
-		State:       workitem.SystemStateNew,
+		Title:       &title,
+		Description: &description,
+		State:       &state,
 		Type: &model.WorkItemType{
 			ID: "26787039-b68f-4e28-8814-c2f93be1ef4e",
 		},

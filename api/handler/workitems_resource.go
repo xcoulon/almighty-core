@@ -1,4 +1,4 @@
-package resource
+package handler
 
 import (
 	"fmt"
@@ -199,7 +199,7 @@ func (r WorkItemsResource) List(ctx *gin.Context) {
 		// hasChildren := workItemIncludeHasChildren(tx, ctx)
 		items := make([]*model.WorkItem, len(workitems)) // has to be an array of pointer
 		for i, wi := range workitems {
-			items[i] = model.NewWorkItem(wi)
+			items[i] = model.ConvertWorkItemToModel(wi)
 		}
 		// setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(workitems), offset, limit, count, additionalQuery...)
 		// addFilterLinks(response.Links, ctx.RequestData)
@@ -257,7 +257,7 @@ func (r WorkItemsResource) Show(ctx *gin.Context) {
 		abortWithError(ctx, err)
 		return
 	}
-	result := model.NewWorkItem(*wi)
+	result := model.ConvertWorkItemToModel(*wi)
 	log.Info(ctx, map[string]interface{}{"wi_id": result.ID, "type_id": result.Type.ID}, "Returning work item: %+v", result)
 	showCtx.OK(result)
 }
@@ -298,10 +298,11 @@ func (r WorkItemsResource) Create(ctx *gin.Context) {
 		return
 	}
 	payloadWI := createCtx.WorkItem
+	payloadDescription := rendering.NewMarkupContentFromLegacy(*payloadWI.Description)
 	fields := make(map[string]interface{})
-	fields[workitem.SystemTitle] = payloadWI.Title
-	fields[workitem.SystemDescription] = rendering.NewMarkupContentFromLegacy(payloadWI.Description)
-	fields[workitem.SystemState] = payloadWI.State
+	fields[workitem.SystemTitle] = *payloadWI.Title
+	fields[workitem.SystemDescription] = payloadDescription
+	fields[workitem.SystemState] = *payloadWI.State
 	if createCtx.WorkItem.Type == nil {
 		abortWithError(ctx, errors.NewBadParameterError("type", err))
 	}
@@ -309,13 +310,84 @@ func (r WorkItemsResource) Create(ctx *gin.Context) {
 	if err != nil {
 		abortWithError(ctx, errors.NewBadParameterError("type", err))
 	}
-	creatorID, _ := uuid.FromString("e1e9b60a-0c8d-4450-83d3-b2dc44a8bc1c")
-	createdWI, err := r.db.WorkItems().Create(ctx, createCtx.SpaceID, wiType, fields, creatorID)
+	// creatorID, _ := uuid.FromString("e1e9b60a-0c8d-4450-83d3-b2dc44a8bc1c")
+	creatorID, _ := GetUserID(ctx)
+	createdWI, err := r.db.WorkItems().Create(ctx, createCtx.SpaceID, wiType, fields, *creatorID)
 	if err != nil {
 		abortWithError(ctx, err)
 		return
 	}
 	config := configuration.Get()
 	location := fmt.Sprintf("%[1]s/api/workitems/%[2]s", config.GetAPIServiceURL(), createdWI.ID)
+	// FIXME: we must return a model.WorkItem
 	createCtx.Created(createdWI, location)
+}
+
+type WorkItemsResourceUpdateContext struct {
+	*gin.Context
+	WorkItemID uuid.UUID      `gin:"param,workitemID"`
+	WorkItem   model.WorkItem `gin:"body"`
+}
+
+// OK Responds with a '200 OK' response
+func (ctx *WorkItemsResourceUpdateContext) OK(result interface{}) {
+	OK(ctx.Context, result)
+}
+
+//NewWorkItemsResourceUpdateContext initializes a new WorkItemsResourceUpdateContext context from the 'gin' context
+func NewWorkItemsResourceUpdateContext(ctx *gin.Context) (*WorkItemsResourceUpdateContext, error) {
+	workitemID, err := uuid.FromString(ctx.Param("workitemID")) // the workitem ID param
+	if err != nil {
+		return nil, errors.NewBadParameterError("workitemID", err)
+	}
+	return &WorkItemsResourceUpdateContext{
+		Context:    ctx,
+		WorkItemID: workitemID,
+	}, nil
+}
+
+//Update updates an existing work item, given the JSON-API content passed in the request body
+func (r WorkItemsResource) Update(ctx *gin.Context) {
+	updateCtx, err := NewWorkItemsResourceUpdateContext(ctx)
+	if err != nil {
+		abortWithError(ctx, err)
+		return
+	}
+	currentUserID, _ := GetUserID(ctx)
+	wi, err := r.db.WorkItems().LoadByID(ctx, updateCtx.WorkItemID)
+	if err != nil {
+		abortWithError(ctx, err)
+		return
+	}
+	err = application.Transactional(r.db, func(appl application.Application) error {
+		// type with the old one after the WI has been converted.
+		oldType := wi.Type
+		payloadWI := updateCtx.WorkItem
+		err = model.ConvertModelToWorkItem(ctx, appl, payloadWI, wi, wi.SpaceID)
+		if err != nil {
+			return err
+		}
+		wi.Type = oldType
+		wi, err = r.db.WorkItems().Save(ctx, wi.SpaceID, *wi, *currentUserID)
+		if err != nil {
+			abortWithError(ctx, err)
+			return err
+		}
+
+		// hasChildren := workItemIncludeHasChildren(appl, ctx)
+		// wi2 := ConvertWorkItem(ctx.RequestData, *wi, hasChildren)
+		// resp := &app.WorkItemSingle{
+		// 	Data: wi2,
+		// 	Links: &app.WorkItemLinks{
+		// 		Self: buildAbsoluteURL(ctx.RequestData),
+		// 	},
+		// }
+		result := model.ConvertWorkItemToModel(*wi)
+		// ctx.ResponseData.Header().Set("Last-Modified", lastModified(*wi))
+		updateCtx.OK(result)
+		return nil
+	})
+	// if err == nil {
+	// 	c.notification.Send(ctx, notification.NewWorkItemUpdated(wi.ID.String()))
+	// }
 }

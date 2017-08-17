@@ -1,4 +1,4 @@
-package resource_test
+package handler_test
 
 import (
 	"context"

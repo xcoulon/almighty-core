@@ -1,4 +1,4 @@
-package resource
+package handler
 
 // this file contains some paging related utility functions
 

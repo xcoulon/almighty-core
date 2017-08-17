@@ -1,4 +1,4 @@
-package resource_test
+package handler_test
 
 import (
 	"fmt"
@@ -8,6 +8,7 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/api"
+	. "github.com/fabric8-services/fabric8-wit/api/handler"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 )
@@ -24,7 +25,7 @@ func makeTokenString(SigningAlgorithm string, identity string) string {
 	// config := configuration.Get()
 	tss, _ := token.SigningString()
 	fmt.Printf("Submitted signing string: '%v'\n", tss)
-	tokenString, _ := token.SignedString(api.Key)
+	tokenString, _ := token.SignedString(SigningKey)
 	return tokenString
 }
 
