@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"os"
 	"os/user"
 	"runtime"
@@ -25,7 +26,7 @@ import (
 )
 
 func main() {
-
+	flag.Parse() // moved here because to avoid preventing execution of tests with the ginkgo tool. See https://github.com/onsi/ginkgo/issues/296#issuecomment-249924522
 	config := configuration.Get()
 	// Initialized developer mode flag and log level for the logger
 	log.InitializeLogger(config.IsLogJSON(), config.GetLogLevel())

@@ -125,7 +125,7 @@ func Load() *ConfigurationData {
 	flag.StringVar(&configFilePath, "config", "", "Path to the config file to read")
 	flag.BoolVar(&printConfig, "printConfig", false, "Prints the config (including merged environment variables) and exits")
 	flag.BoolVar(&migrateDB, "migrateDatabase", false, "Migrates the database to the newest version and exits.")
-	flag.Parse()
+	// flag.Parse() // commented out because it prevents execution of tests with the ginkgo tool. See https://github.com/onsi/ginkgo/issues/296#issuecomment-249924522
 
 	// Override default -config switch with environment variable only if -config switch was
 	// not explicitly given via the command line.

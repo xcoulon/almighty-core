@@ -11,6 +11,7 @@ import (
 	. "github.com/fabric8-services/fabric8-wit/api/handler"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	. "github.com/onsi/ginkgo"
 )
 
 func makeTokenString(SigningAlgorithm string, identity string) string {
@@ -29,13 +30,12 @@ func makeTokenString(SigningAlgorithm string, identity string) string {
 	return tokenString
 }
 
-func verify(s gormtestsupport.DBTestSuite, r *http.Request, expectedStatusCode int) {
+func verify(s gormtestsupport.GinkgoTestSuite, r *http.Request, expectedStatusCode int) {
 	rr := httptest.NewRecorder()
 	httpEngine := api.NewGinEngine(gormapplication.NewGormDB(s.DB), s.Configuration)
 	httpEngine.ServeHTTP(rr, r)
-
+	GinkgoT().Logf("Response:\n%s", rr.Body.String())
 	if e, a := expectedStatusCode, rr.Code; e != a {
-		s.T().Fatalf("Expected a status of %d, got %d", e, a)
+		GinkgoT().Fatalf("Expected a status of %d, got %d", e, a)
 	}
-
 }
