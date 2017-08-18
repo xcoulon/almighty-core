@@ -3,8 +3,10 @@ package handler_test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"net/http"
 
+	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/api/model"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/workitem"
@@ -22,6 +24,9 @@ type WorkItemsResourceTestSuite struct {
 }
 
 var _ = Describe("WorkItems", func() {
+
+	// FIXME: need to create a test space for all those tests
+	testSpaceID := "2e0698d8-753e-4cef-bb7c-f027634824a2"
 
 	s := WorkItemsResourceTestSuite{GinkgoTestSuite: gormtestsupport.NewGinkgoTestSuite("../../config.yaml")}
 
@@ -53,7 +58,7 @@ var _ = Describe("WorkItems", func() {
 				payload := bytes.NewBuffer(make([]byte, 0))
 				err := jsonapi.MarshalPayload(payload, &wi)
 				require.Nil(GinkgoT(), err)
-				r, _ := http.NewRequest(http.MethodPost, "/api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2/workitems", payload)
+				r, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/spaces/%[1]s/workitems", testSpaceID), payload)
 				r.Header.Set("Authorization", "Bearer "+makeTokenString("HS256", testIdentity.ID.String()))
 				// when
 				rr := Execute(s.GinkgoTestSuite, r)
@@ -83,7 +88,7 @@ var _ = Describe("WorkItems", func() {
 				payload := bytes.NewBuffer(make([]byte, 0))
 				err := jsonapi.MarshalPayload(payload, &wi)
 				require.Nil(GinkgoT(), err)
-				r, err := http.NewRequest(http.MethodPost, "/api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2/workitems", payload)
+				r, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/spaces/%[1]s/workitems", testSpaceID), payload)
 				// when
 				rr := Execute(s.GinkgoTestSuite, r)
 				// then
@@ -106,7 +111,7 @@ var _ = Describe("WorkItems", func() {
 				payload := bytes.NewBuffer(make([]byte, 0))
 				err := jsonapi.MarshalPayload(payload, &wi)
 				require.Nil(GinkgoT(), err)
-				r, _ := http.NewRequest(http.MethodPost, "/api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2/workitems", payload)
+				r, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/spaces/%[1]s/workitems", testSpaceID), payload)
 				// generate/sign an auth token
 				r.Header.Set("Authorization", "Bearer "+makeTokenString("HS256", "foo"))
 				// when
@@ -118,9 +123,14 @@ var _ = Describe("WorkItems", func() {
 
 		Context("Update WorkItem", func() {
 
-			It("Update WorkItem OK", func() {
+			var testIdentity *account.Identity
+			var createdWI model.WorkItem
+			var payload *bytes.Buffer
+
+			BeforeEach(func() {
+				GinkgoT().Log("creating a work item to test the updates...")
 				// given
-				testIdentity := createOneRandomUserIdentity(context.Background(), s.DB)
+				testIdentity = createOneRandomUserIdentity(context.Background(), s.DB)
 				title := "A title"
 				description := "A description"
 				state := workitem.SystemStateNew
@@ -135,25 +145,41 @@ var _ = Describe("WorkItems", func() {
 				payload := bytes.NewBuffer(make([]byte, 0))
 				err := jsonapi.MarshalPayload(payload, &wi)
 				require.Nil(GinkgoT(), err)
-				r, _ := http.NewRequest(http.MethodPost, "/api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2/workitems", payload)
+				r, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/spaces/%[1]s/workitems", testSpaceID), payload)
 				r.Header.Set("Authorization", "Bearer "+makeTokenString("HS256", testIdentity.ID.String()))
 				// when
 				rr := Execute(s.GinkgoTestSuite, r)
 				// then
-				assert.Equal(GinkgoT(), http.StatusCreated, rr.Code)
+				require.Equal(GinkgoT(), http.StatusCreated, rr.Code)
+				err = jsonapi.UnmarshalPayload(rr.Body, &createdWI)
+				require.Nil(GinkgoT(), err)
+			})
+
+			It("Update WorkItem OK", func() {
+				// given
+				updatedTitle := "Updated title"
+				createdWI.Title = &updatedTitle
+				payload = bytes.NewBuffer(make([]byte, 0))
+				err := jsonapi.MarshalPayload(payload, &createdWI)
+				r, _ := http.NewRequest(http.MethodPatch, fmt.Sprintf("/api/workitems/%[1]s", createdWI.ID), payload)
+				r.Header.Set("Authorization", "Bearer "+makeTokenString("HS256", testIdentity.ID.String()))
+				// when
+				rr := Execute(s.GinkgoTestSuite, r)
+				// then
+				assert.Equal(GinkgoT(), http.StatusOK, rr.Code)
 				responseItem := model.WorkItem{}
 				GinkgoT().Logf("Response body:\n%s", rr.Body.String())
 				err = jsonapi.UnmarshalPayload(rr.Body, &responseItem)
 				require.Nil(GinkgoT(), err)
 				assert.NotNil(GinkgoT(), responseItem.ID)
-				assert.Equal(GinkgoT(), "A description", *responseItem.Description)
+				assert.Equal(GinkgoT(), "Updated title", *responseItem.Title)
 			})
 		})
 
 		Context("List WorkItems", func() {
 			It("List WorkItems OK", func() {
 				// given
-				r, _ := http.NewRequest(http.MethodGet, "/api/spaces/2e0698d8-753e-4cef-bb7c-f027634824a2/workitems", nil)
+				r, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/spaces/%[1]s/workitems", testSpaceID), nil)
 				// when
 				rr := Execute(s.GinkgoTestSuite, r)
 				// then

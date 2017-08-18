@@ -8,6 +8,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/google/jsonapi"
@@ -54,6 +55,7 @@ func ConvertWorkItemToModel(wi workitem.WorkItem) *WorkItem {
 
 // ConvertModelToWorkItem converts the received work item (in the JSON-API format) into a domain work item
 func ConvertModelToWorkItem(ctx context.Context, appl application.Application, source WorkItem, target *workitem.WorkItem, spaceID uuid.UUID) error {
+	log.Info(nil, nil, "Converting work item using: %+v", source)
 	// construct default values from input WI
 	target.Version = source.Version
 
@@ -102,7 +104,7 @@ func ConvertModelToWorkItem(ctx context.Context, appl application.Application, s
 	if source.Title != nil {
 		target.Fields[workitem.SystemTitle] = *source.Title
 	}
-
+	log.Info(nil, nil, "Converted work item: %+v", target)
 	return nil
 }
 

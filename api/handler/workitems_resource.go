@@ -340,9 +340,15 @@ func NewWorkItemsResourceUpdateContext(ctx *gin.Context) (*WorkItemsResourceUpda
 	if err != nil {
 		return nil, errors.NewBadParameterError("workitemID", err)
 	}
+	payload := model.WorkItem{}
+	err = jsonapi.UnmarshalPayload(ctx.Request.Body, &payload)
+	if err != nil {
+		return nil, errors.NewConversionError(err.Error())
+	}
 	return &WorkItemsResourceUpdateContext{
 		Context:    ctx,
 		WorkItemID: workitemID,
+		WorkItem:   payload,
 	}, nil
 }
 
@@ -362,8 +368,7 @@ func (r WorkItemsResource) Update(ctx *gin.Context) {
 	err = application.Transactional(r.db, func(appl application.Application) error {
 		// type with the old one after the WI has been converted.
 		oldType := wi.Type
-		payloadWI := updateCtx.WorkItem
-		err = model.ConvertModelToWorkItem(ctx, appl, payloadWI, wi, wi.SpaceID)
+		err = model.ConvertModelToWorkItem(ctx, appl, updateCtx.WorkItem, wi, wi.SpaceID)
 		if err != nil {
 			return err
 		}
