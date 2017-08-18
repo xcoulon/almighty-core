@@ -30,6 +30,15 @@ func makeTokenString(SigningAlgorithm string, identity string) string {
 	return tokenString
 }
 
+// Execute submits the request and returns the response recording fo subseauent verifications
+func Execute(s gormtestsupport.GinkgoTestSuite, r *http.Request) *httptest.ResponseRecorder {
+	rr := httptest.NewRecorder()
+	httpEngine := api.NewGinEngine(gormapplication.NewGormDB(s.DB), s.Configuration)
+	httpEngine.ServeHTTP(rr, r)
+	GinkgoT().Logf("Response status: %d", rr.Code)
+	return rr
+}
+
 func verify(s gormtestsupport.GinkgoTestSuite, r *http.Request, expectedStatusCode int) {
 	rr := httptest.NewRecorder()
 	httpEngine := api.NewGinEngine(gormapplication.NewGormDB(s.DB), s.Configuration)

@@ -25,6 +25,6 @@ func NewGinEngine(appDB *gormapplication.GormDB, config *configuration.Configura
 	authGroup.Use(authMiddleware.MiddlewareFunc())
 	authGroup.GET("/refresh_token", authMiddleware.RefreshHandler)
 	authGroup.POST("/api/spaces/:spaceID/workitems", workitemsResource.Create)
-	// authGroup.PATCH("/api/workitems/:workitemID", handler.NewWorkItemUpdateAuthorizator(appDB), workitemsResource.Update)
+	authGroup.PATCH("/api/workitems/:workitemID", handler.NewWorkItemUpdateAuthorizator(appDB), workitemsResource.Update)
 	return httpEngine
 }

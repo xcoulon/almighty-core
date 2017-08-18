@@ -319,8 +319,8 @@ func (r WorkItemsResource) Create(ctx *gin.Context) {
 	}
 	config := configuration.Get()
 	location := fmt.Sprintf("%[1]s/api/workitems/%[2]s", config.GetAPIServiceURL(), createdWI.ID)
-	// FIXME: we must return a model.WorkItem
-	createCtx.Created(createdWI, location)
+	responseWI := model.ConvertWorkItemToModel(*createdWI)
+	createCtx.Created(responseWI, location)
 }
 
 type WorkItemsResourceUpdateContext struct {
