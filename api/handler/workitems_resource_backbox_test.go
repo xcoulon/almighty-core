@@ -8,10 +8,13 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/api/model"
+	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
+	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/google/jsonapi"
 	. "github.com/onsi/ginkgo"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,23 +22,38 @@ import (
 type WorkItemsResourceTestSuite struct {
 	gormtestsupport.GinkgoTestSuite
 	clean func()
-	repo  workitem.WorkItemTypeRepository
 	ctx   context.Context
+	space space.Space
 }
 
 var _ = Describe("WorkItems", func() {
 
-	// FIXME: need to create a test space for all those tests
-	testSpaceID := "2e0698d8-753e-4cef-bb7c-f027634824a2"
-
 	s := WorkItemsResourceTestSuite{GinkgoTestSuite: gormtestsupport.NewGinkgoTestSuite("../../config.yaml")}
 
-	BeforeEach(func() {
+	BeforeSuite(func() {
 		s.Setup()
+		// also, create a testing space for all operations
+		spaceOwnerIdentity := createOneRandomUserIdentity(context.Background(), s.DB)
+		spaceRepo := space.NewRepository(s.DB)
+		testSpace, err := spaceRepo.Create(context.Background(), &space.Space{
+			Name:        "test-" + uuid.NewV4().String(),
+			Description: "Test space",
+			OwnerId:     spaceOwnerIdentity.ID,
+		})
+		require.Nil(GinkgoT(), err)
+		s.space = *testSpace
+	})
+
+	AfterSuite(func() {
+		s.TearDown()
+	})
+
+	BeforeEach(func() {
+		s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	})
 
 	AfterEach(func() {
-		s.TearDown()
+		s.clean()
 	})
 
 	Describe("Test WorkItems", func() {
@@ -58,7 +76,7 @@ var _ = Describe("WorkItems", func() {
 				payload := bytes.NewBuffer(make([]byte, 0))
 				err := jsonapi.MarshalPayload(payload, &wi)
 				require.Nil(GinkgoT(), err)
-				r, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/spaces/%[1]s/workitems", testSpaceID), payload)
+				r, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/spaces/%[1]s/workitems", s.space.OwnerId), payload)
 				r.Header.Set("Authorization", "Bearer "+makeTokenString("HS256", testIdentity.ID.String()))
 				// when
 				rr := Execute(s.GinkgoTestSuite, r)
@@ -88,7 +106,7 @@ var _ = Describe("WorkItems", func() {
 				payload := bytes.NewBuffer(make([]byte, 0))
 				err := jsonapi.MarshalPayload(payload, &wi)
 				require.Nil(GinkgoT(), err)
-				r, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/spaces/%[1]s/workitems", testSpaceID), payload)
+				r, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/spaces/%[1]s/workitems", s.space.OwnerId), payload)
 				// when
 				rr := Execute(s.GinkgoTestSuite, r)
 				// then
@@ -111,7 +129,7 @@ var _ = Describe("WorkItems", func() {
 				payload := bytes.NewBuffer(make([]byte, 0))
 				err := jsonapi.MarshalPayload(payload, &wi)
 				require.Nil(GinkgoT(), err)
-				r, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/spaces/%[1]s/workitems", testSpaceID), payload)
+				r, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/spaces/%[1]s/workitems", s.space.OwnerId), payload)
 				// generate/sign an auth token
 				r.Header.Set("Authorization", "Bearer "+makeTokenString("HS256", "foo"))
 				// when
@@ -145,7 +163,7 @@ var _ = Describe("WorkItems", func() {
 				payload := bytes.NewBuffer(make([]byte, 0))
 				err := jsonapi.MarshalPayload(payload, &wi)
 				require.Nil(GinkgoT(), err)
-				r, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/spaces/%[1]s/workitems", testSpaceID), payload)
+				r, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/spaces/%[1]s/workitems", s.space.OwnerId), payload)
 				r.Header.Set("Authorization", "Bearer "+makeTokenString("HS256", testIdentity.ID.String()))
 				// when
 				rr := Execute(s.GinkgoTestSuite, r)
@@ -196,7 +214,7 @@ var _ = Describe("WorkItems", func() {
 		Context("List WorkItems", func() {
 			It("List WorkItems OK", func() {
 				// given
-				r, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/spaces/%[1]s/workitems", testSpaceID), nil)
+				r, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/spaces/%[1]s/workitems", s.space.OwnerId), nil)
 				// when
 				rr := Execute(s.GinkgoTestSuite, r)
 				// then
