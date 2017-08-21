@@ -105,11 +105,11 @@ type ConfigurationData struct {
 }
 
 // Get gets the config, making sure it's loaded once and only once.
-func Get() ConfigurationData {
+func Get() *ConfigurationData {
 	if config == nil {
 		config = Load()
 	}
-	return *config
+	return config
 }
 
 //Load loads the configuration using the default config file or the one specified with the '-config' switch

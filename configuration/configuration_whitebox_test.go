@@ -16,7 +16,7 @@ import (
 
 var reqLong *goa.RequestData
 var reqShort *goa.RequestData
-var testConfig ConfigurationData
+var testConfig *ConfigurationData
 
 func init() {
 
