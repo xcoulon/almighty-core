@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"net/http"
 	"os"
 	"os/user"
 	"runtime"
@@ -9,8 +10,13 @@ import (
 
 	"context"
 
+	"github.com/goadesign/goa"
+	"github.com/goadesign/goa/middleware"
+	"github.com/goadesign/goa/middleware/gzip"
+	"github.com/jinzhu/gorm"
+	_ "github.com/lib/pq"
+
 	"github.com/fabric8-services/fabric8-wit/account"
-	"github.com/fabric8-services/fabric8-wit/api"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/auth"
@@ -30,12 +36,8 @@ import (
 	"github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
-	"github.com/goadesign/goa"
 	goalogrus "github.com/goadesign/goa/logging/logrus"
-	"github.com/goadesign/goa/middleware"
-	"github.com/goadesign/goa/middleware/gzip"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
-	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 )
 
@@ -285,20 +287,19 @@ func main() {
 	log.Logger().Infoln("GOMAXPROCS:     ", runtime.GOMAXPROCS(-1))
 	log.Logger().Infoln("NumCPU:         ", runtime.NumCPU())
 
-	// http.Handle("/api/", service.Mux)
-	// http.Handle("/", http.FileServer(assetFS()))
-	// http.Handle("/favicon.ico", http.NotFoundHandler())
+	http.Handle("/api/", service.Mux)
+	http.Handle("/", http.FileServer(assetFS()))
+	http.Handle("/favicon.ico", http.NotFoundHandler())
 
-	// // Start http
-	// if err := http.ListenAndServe(config.GetHTTPAddress(), nil); err != nil {
-	// 	log.Error(nil, map[string]interface{}{
-	// 		"addr": config.GetHTTPAddress(),
-	// 		"err":  err,
-	// 	}, "unable to connect to server")
-	// 	service.LogError("startup", "err", err)
-	// }
-
-	api.NewGinEngine(appDB, notificationChannel, config).Run(config.GetHTTPAddress())
+	// Start http
+	if err := http.ListenAndServe(config.GetHTTPAddress(), nil); err != nil {
+		log.Error(nil, map[string]interface{}{
+			"addr": config.GetHTTPAddress(),
+			"err":  err,
+		}, "unable to connect to server")
+		service.LogError("startup", "err", err)
+	}
+	// api.NewGinEngine(appDB, notificationChannel, config).Run(config.GetHTTPAddress())
 }
 
 func connectToDB(config *configuration.ConfigurationData) *gorm.DB {
