@@ -161,6 +161,7 @@ var _ = Describe("WorkItems", func() {
 				createdWI.Title = &updatedTitle
 				payload = bytes.NewBuffer(make([]byte, 0))
 				err := jsonapi.MarshalPayload(payload, &createdWI)
+				require.Nil(GinkgoT(), err)
 				r, _ := http.NewRequest(http.MethodPatch, fmt.Sprintf("/api/workitems/%[1]s", createdWI.ID), payload)
 				r.Header.Set("Authorization", "Bearer "+makeTokenString("HS256", testIdentity.ID.String()))
 				// when
@@ -173,6 +174,22 @@ var _ = Describe("WorkItems", func() {
 				require.Nil(GinkgoT(), err)
 				assert.NotNil(GinkgoT(), responseItem.ID)
 				assert.Equal(GinkgoT(), "Updated title", *responseItem.Title)
+			})
+
+			It("Update WorkItem KO - invalid credentials", func() {
+				// given
+				updatedTitle := "Updated title"
+				createdWI.Title = &updatedTitle
+				payload = bytes.NewBuffer(make([]byte, 0))
+				err := jsonapi.MarshalPayload(payload, &createdWI)
+				require.Nil(GinkgoT(), err)
+				r, _ := http.NewRequest(http.MethodPatch, fmt.Sprintf("/api/workitems/%[1]s", createdWI.ID), payload)
+				// generate an invalid auth token
+				r.Header.Set("Authorization", "Bearer "+makeTokenString("HS256", "foo"))
+				// when
+				rr := Execute(s.GinkgoTestSuite, r)
+				// then
+				assert.Equal(GinkgoT(), http.StatusForbidden, rr.Code)
 			})
 		})
 
