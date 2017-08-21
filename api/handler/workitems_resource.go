@@ -12,6 +12,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/notification"
 	query "github.com/fabric8-services/fabric8-wit/query/simple"
 	"github.com/fabric8-services/fabric8-wit/rendering"
 	"github.com/fabric8-services/fabric8-wit/search"
@@ -43,13 +44,18 @@ type WorkItemsResourceConfiguration interface {
 
 // WorkItemsResource the resource for work items
 type WorkItemsResource struct {
-	db     application.DB
-	config WorkItemsResourceConfiguration
+	db                  application.DB
+	config              WorkItemsResourceConfiguration
+	notificationChannel notification.Channel
 }
 
 // NewWorkItemsResource returns a new WorkItemsResource
-func NewWorkItemsResource(db application.DB, config WorkItemsResourceConfiguration) WorkItemsResource {
-	return WorkItemsResource{db: db, config: config}
+func NewWorkItemsResource(db application.DB, notificationChannel notification.Channel, config WorkItemsResourceConfiguration) WorkItemsResource {
+	return WorkItemsResource{
+		db:                  db,
+		notificationChannel: notificationChannel,
+		config:              config,
+	}
 }
 
 type WorkItemsResourceListContext struct {
@@ -217,7 +223,6 @@ func (r WorkItemsResource) List(ctx *gin.Context) {
 			},
 		}
 		listCtx.OK(payload)
-
 	})
 }
 
@@ -392,7 +397,7 @@ func (r WorkItemsResource) Update(ctx *gin.Context) {
 		updateCtx.OK(result)
 		return nil
 	})
-	// if err == nil {
-	// 	c.notification.Send(ctx, notification.NewWorkItemUpdated(wi.ID.String()))
-	// }
+	if err == nil && r.notificationChannel != nil {
+		r.notificationChannel.Send(ctx, notification.NewWorkItemUpdated(wi.ID.String()))
+	}
 }

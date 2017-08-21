@@ -9,12 +9,10 @@ import (
 
 	"context"
 
-	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 
 	"github.com/fabric8-services/fabric8-wit/api"
-	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/controller"
@@ -76,7 +74,7 @@ func main() {
 	}
 
 	// // Create service
-	service := goa.New("wit")
+	// service := goa.New("wit")
 
 	// // Mount middleware
 	// service.Use(middleware.RequestID())
@@ -99,7 +97,7 @@ func main() {
 	// identityRepository := account.NewIdentityRepository(db)
 	// userRepository := account.NewUserRepository(db)
 
-	var notificationChannel notification.Channel = &notification.DevNullChannel{}
+	var notificationChannel *notification.Channel = &notification.DevNullChannel{}
 	if config.GetNotificationServiceURL() != "" {
 		log.Logger().Infof("Enabling Notification service %v", config.GetNotificationServiceURL())
 		channel, err := notification.NewServiceChannel(config)
@@ -109,7 +107,7 @@ func main() {
 				"url": config.GetNotificationServiceURL(),
 			}, "failed to parse notification service url")
 		}
-		notificationChannel = channel
+		notificationChannel = &channel
 	}
 
 	appDB := gormapplication.NewGormDB(db)
@@ -148,8 +146,8 @@ func main() {
 
 	// // Mount "workitems" controller
 	// //workitemsCtrl := controller.NewWorkitemsController(service, appDB, configuration)
-	workitemsCtrl := controller.NewNotifyingWorkitemsController(service, appDB, notificationChannel, config)
-	app.MountWorkitemsController(service, workitemsCtrl)
+	// workitemsCtrl := controller.NewNotifyingWorkitemsController(service, appDB, notificationChannel, config)
+	// app.MountWorkitemsController(service, workitemsCtrl)
 
 	// // Mount "workitemtype" controller
 	// workitemtypeCtrl := controller.NewWorkitemtypeController(service, appDB, configuration)
@@ -226,7 +224,7 @@ func main() {
 	// 	service.LogError("startup", "err", err)
 	// }
 
-	api.NewGinEngine(appDB, config).Run(config.GetHTTPAddress())
+	api.NewGinEngine(appDB, notificationChannel, config).Run(config.GetHTTPAddress())
 }
 
 func connectToDB(config *configuration.ConfigurationData) *gorm.DB {
