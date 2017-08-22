@@ -11,7 +11,7 @@ var _ = a.API("wit", func() {
 	a.Version("1.0")
 	a.Host("openshift.io")
 	a.Scheme("http")
-	a.BasePath("/api")
+	a.BasePath("/api/v1")
 	a.Consumes("application/json")
 	a.Produces("application/json")
 
@@ -45,7 +45,7 @@ var _ = a.API("wit", func() {
 
 	a.JWTSecurity("jwt", func() {
 		a.Description("JWT Token Auth")
-		a.TokenURL("/api/login/authorize")
+		a.TokenURL("/api/v1/login/authorize")
 		a.Header("Authorization")
 	})
 

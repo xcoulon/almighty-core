@@ -10,6 +10,7 @@ import (
 
 	"context"
 
+	"github.com/gin-gonic/gin"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware"
 	"github.com/goadesign/goa/middleware/gzip"
@@ -17,6 +18,7 @@ import (
 	_ "github.com/lib/pq"
 
 	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/api"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/auth"
@@ -287,19 +289,24 @@ func main() {
 	log.Logger().Infoln("GOMAXPROCS:     ", runtime.GOMAXPROCS(-1))
 	log.Logger().Infoln("NumCPU:         ", runtime.NumCPU())
 
-	http.Handle("/api/", service.Mux)
-	http.Handle("/", http.FileServer(assetFS()))
-	http.Handle("/favicon.ico", http.NotFoundHandler())
+	/*
+		http.Handle("/api/", service.Mux)
+		http.Handle("/", http.FileServer(assetFS()))
+		http.Handle("/favicon.ico", http.NotFoundHandler())
+			// Start http
+			if err := http.ListenAndServe(config.GetHTTPAddress(), nil); err != nil {
+				log.Error(nil, map[string]interface{}{
+					"addr": config.GetHTTPAddress(),
+					"err":  err,
+				}, "unable to connect to server")
+				service.LogError("startup", "err", err)
+			}*/
 
-	// Start http
-	if err := http.ListenAndServe(config.GetHTTPAddress(), nil); err != nil {
-		log.Error(nil, map[string]interface{}{
-			"addr": config.GetHTTPAddress(),
-			"err":  err,
-		}, "unable to connect to server")
-		service.LogError("startup", "err", err)
-	}
-	// api.NewGinEngine(appDB, notificationChannel, config).Run(config.GetHTTPAddress())
+	engine := api.NewGinEngine(appDB, notificationChannel, config)
+	engine.Any("/api/v1/*w", gin.WrapH(service.Mux))
+	engine.GET("/", gin.WrapH(http.FileServer(assetFS())))
+	engine.GET("/favicon.ico", gin.WrapH(http.NotFoundHandler()))
+	engine.Run(config.GetHTTPAddress())
 }
 
 func connectToDB(config *configuration.ConfigurationData) *gorm.DB {
