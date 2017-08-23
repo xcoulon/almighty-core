@@ -14,19 +14,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var reqLong *goa.RequestData
-var reqShort *goa.RequestData
+var reqLong *http.Request
+var reqShort *http.Request
 var testConfig *ConfigurationData
 
 func init() {
 
 	// ensure that the content here is executed only once.
-	reqLong = &goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}
-	reqShort = &goa.RequestData{
-		Request: &http.Request{Host: "api.domain.org"},
-	}
+	reqLong = &http.Request{Host: "api.service.domain.org"}
+	reqShort = &http.Request{Host: "api.domain.org"}
 	resetConfiguration()
 }
 
@@ -65,11 +61,7 @@ func TestGetKeycloakHttpsURLOK(t *testing.T) {
 
 	r, err := http.NewRequest("", "https://sso.domain.org", nil)
 	require.Nil(t, err)
-	req := &goa.RequestData{
-		Request: r,
-	}
-
-	url, err := config.getKeycloakURL(req, "somepath")
+	url, err := config.getKeycloakURL(r, "somepath")
 	assert.Nil(t, err)
 	assert.Equal(t, "https://sso.domain.org/somepath", url)
 }
@@ -77,10 +69,7 @@ func TestGetKeycloakHttpsURLOK(t *testing.T) {
 func TestGetKeycloakURLForTooShortHostFails(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "org"},
-	}
+	r := &http.Request{Host: "org"}
 	_, err := config.getKeycloakURL(r, "somepath")
 	assert.NotNil(t, err)
 }

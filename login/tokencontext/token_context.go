@@ -4,6 +4,8 @@ package tokencontext
 
 import (
 	"context"
+
+	"github.com/gin-gonic/gin"
 )
 
 type contextTMKey int
@@ -13,7 +15,7 @@ const (
 	//contextTokenManagerKey is a key that will be used to put and to get `tokenManager` from goa.context
 	contextTokenManagerKey contextTMKey = iota
 	//autzSpaceServiceKey is a key that will be used to put and to get `AuthzService` from goa.context
-	autzSpaceServiceKey int = iota
+	autzSpaceServiceKey string = "autzSpaceServiceKey"
 )
 
 // ReadTokenManagerFromContext returns an interface that encapsulates the
@@ -42,4 +44,11 @@ func ContextWithTokenManager(ctx context.Context, tm interface{}) context.Contex
 // Only other possible value is nil
 func ContextWithSpaceAuthzService(ctx context.Context, s interface{}) context.Context {
 	return context.WithValue(ctx, autzSpaceServiceKey, s)
+}
+
+// ContextSetSpaceAuthzService injects AuthzServiceManager in the context for every incoming request
+// Accepts service.AuthzServiceManager in order to make sure that correct object is set in the context.
+// Only other possible value is nil
+func ContextSetSpaceAuthzService(ctx *gin.Context, s interface{}) {
+	ctx.Set(autzSpaceServiceKey, s)
 }

@@ -131,8 +131,8 @@ func GetUserID(ctx *gin.Context) (*uuid.UUID, error) {
 	return nil, errs.New("request context did not contain an entry for the current user's ID")
 }
 
-//NewWorkItemUpdateAuthorizator returns a new handler that checks if the current user is allowed to edit the work item
-func NewWorkItemUpdateAuthorizator(db application.DB) func(*gin.Context) {
+//WorkItemUpdateAuthorizator returns a new handler that checks if the current user is allowed to edit the work item
+func WorkItemUpdateAuthorizator(db application.DB) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		workitemID, err := uuid.FromString(ctx.Param("workitemID")) // the workitem ID param
 		if err != nil {
@@ -149,7 +149,10 @@ func NewWorkItemUpdateAuthorizator(db application.DB) func(*gin.Context) {
 			abortWithError(ctx, errors.NewBadParameterError("workitem.SystemCreator", nil))
 		}
 		currentUserID, _ := GetUserID(ctx)
-
+		if currentUserID == nil {
+			abortWithError(ctx, errors.NewBadParameterError("workitem.SystemCreator", nil))
+		}
+		log.Debug(ctx, map[string]interface{}{"wi": wi, "creator": creator, "current_user": currentUserID}, "Authorizing work item update...")
 		authorized, err := authorizeWorkitemEditor(ctx, db, wi.SpaceID, creator.(string), currentUserID.String())
 		if err != nil {
 			abortWithError(ctx, err)

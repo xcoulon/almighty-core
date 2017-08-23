@@ -15,12 +15,12 @@ import (
 func abortWithError(ctx *gin.Context, err error) {
 	status := getHTTPStatus(err)
 	log.Error(ctx, map[string]interface{}{"status": status, "error": err.Error()}, "Aborting context after error occurred")
-	ctx.Status(status)
 	ctx.Header("Content-Type", jsonapi.MediaType)
 	jsonapi.MarshalErrors(ctx.Writer, []*jsonapi.ErrorObject{{
 		Status: strconv.Itoa(status),
 		Meta:   &map[string]interface{}{"error": err.Error()},
 	}})
+	ctx.AbortWithStatus(status)
 }
 
 // getHTTPStatus gets the HTTP response status for the given error
@@ -33,7 +33,7 @@ func getHTTPStatus(err error) int {
 	default:
 		// see if the underlying cause error was wrapped
 		cause := errs.Cause(err)
-		if cause != nil {
+		if cause != nil && cause != err {
 			return getHTTPStatus(cause)
 		}
 		return http.StatusInternalServerError

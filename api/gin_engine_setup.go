@@ -5,6 +5,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/notification"
+	"github.com/fabric8-services/fabric8-wit/space/authz"
 	"github.com/gin-gonic/gin"
 )
 
@@ -22,10 +23,12 @@ func NewGinEngine(appDB *gormapplication.GormDB, notificationChannel notificatio
 	httpEngine.GET("/api/spaces/:spaceID/workitems", workitemsResource.List)
 	httpEngine.GET("/api/workitems/:workitemID", workitemsResource.Show)
 	// secured endpoints
+	spaceAuthzService := authz.NewAuthzService(config, appDB)
 	authGroup := httpEngine.Group("/")
 	authGroup.Use(authMiddleware.MiddlewareFunc())
+	authGroup.Use(authz.AuthzServiceHandler(spaceAuthzService))
 	authGroup.GET("/refresh_token", authMiddleware.RefreshHandler)
 	authGroup.POST("/api/spaces/:spaceID/workitems", workitemsResource.Create)
-	authGroup.PATCH("/api/workitems/:workitemID", handler.NewWorkItemUpdateAuthorizator(appDB), workitemsResource.Update)
+	authGroup.PATCH("/api/workitems/:workitemID", handler.WorkItemUpdateAuthorizator(appDB), workitemsResource.Update)
 	return httpEngine
 }

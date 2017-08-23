@@ -3,6 +3,7 @@ package configuration
 import (
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"regexp"
 	"strings"
@@ -528,7 +529,7 @@ func (c *ConfigurationData) GetKeycloakTestUser2Secret() string {
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointAuth(req *goa.RequestData) (string, error) {
+func (c *ConfigurationData) GetKeycloakEndpointAuth(req *http.Request) (string, error) {
 	return c.getKeycloakOpenIDConnectEndpoint(req, varKeycloakEndpointAuth, "auth")
 }
 
@@ -537,7 +538,7 @@ func (c *ConfigurationData) GetKeycloakEndpointAuth(req *goa.RequestData) (strin
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointToken(req *goa.RequestData) (string, error) {
+func (c *ConfigurationData) GetKeycloakEndpointToken(req *http.Request) (string, error) {
 	return c.getKeycloakOpenIDConnectEndpoint(req, varKeycloakEndpointToken, "token")
 }
 
@@ -546,7 +547,7 @@ func (c *ConfigurationData) GetKeycloakEndpointToken(req *goa.RequestData) (stri
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointUserInfo(req *goa.RequestData) (string, error) {
+func (c *ConfigurationData) GetKeycloakEndpointUserInfo(req *http.Request) (string, error) {
 	return c.getKeycloakOpenIDConnectEndpoint(req, varKeycloakEndpointUserinfo, "userinfo")
 }
 
@@ -556,7 +557,7 @@ func (c *ConfigurationData) GetKeycloakEndpointUserInfo(req *goa.RequestData) (s
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointAdmin(req *goa.RequestData) (string, error) {
+func (c *ConfigurationData) GetKeycloakEndpointAdmin(req *http.Request) (string, error) {
 	return c.getKeycloakEndpoint(req, varKeycloakEndpointAdmin, "auth/admin/realms/"+c.GetKeycloakRealm())
 }
 
@@ -566,7 +567,7 @@ func (c *ConfigurationData) GetKeycloakEndpointAdmin(req *goa.RequestData) (stri
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointAuthzResourceset(req *goa.RequestData) (string, error) {
+func (c *ConfigurationData) GetKeycloakEndpointAuthzResourceset(req *http.Request) (string, error) {
 	return c.getKeycloakEndpoint(req, varKeycloakEndpointAuthzResourceset, "auth/realms/"+c.GetKeycloakRealm()+"/authz/protection/resource_set")
 }
 
@@ -576,7 +577,7 @@ func (c *ConfigurationData) GetKeycloakEndpointAuthzResourceset(req *goa.Request
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointClients(req *goa.RequestData) (string, error) {
+func (c *ConfigurationData) GetKeycloakEndpointClients(req *http.Request) (string, error) {
 	return c.getKeycloakEndpoint(req, varKeycloakEndpointClients, "auth/admin/realms/"+c.GetKeycloakRealm()+"/clients")
 }
 
@@ -586,7 +587,7 @@ func (c *ConfigurationData) GetKeycloakEndpointClients(req *goa.RequestData) (st
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointEntitlement(req *goa.RequestData) (string, error) {
+func (c *ConfigurationData) GetKeycloakEndpointEntitlement(req *http.Request) (string, error) {
 	return c.getKeycloakEndpoint(req, varKeycloakEndpointEntitlement, "auth/realms/"+c.GetKeycloakRealm()+"/authz/entitlement/"+c.GetKeycloakClientID())
 }
 
@@ -596,12 +597,12 @@ func (c *ConfigurationData) GetKeycloakEndpointEntitlement(req *goa.RequestData)
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointBroker(req *goa.RequestData) (string, error) {
+func (c *ConfigurationData) GetKeycloakEndpointBroker(req *http.Request) (string, error) {
 	return c.getKeycloakEndpoint(req, varKeycloakEndpointBroker, "auth/realms/"+c.GetKeycloakRealm()+"/broker")
 }
 
 // GetKeycloakAccountEndpoint returns the API URL for Read and Update on Keycloak User Accounts.
-func (c *ConfigurationData) GetKeycloakAccountEndpoint(req *goa.RequestData) (string, error) {
+func (c *ConfigurationData) GetKeycloakAccountEndpoint(req *http.Request) (string, error) {
 	return c.getKeycloakEndpoint(req, varKeycloakEndpointAccount, "auth/realms/"+c.GetKeycloakRealm()+"/account")
 }
 
@@ -610,7 +611,7 @@ func (c *ConfigurationData) GetKeycloakAccountEndpoint(req *goa.RequestData) (st
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
-func (c *ConfigurationData) GetKeycloakEndpointLogout(req *goa.RequestData) (string, error) {
+func (c *ConfigurationData) GetKeycloakEndpointLogout(req *http.Request) (string, error) {
 	return c.getKeycloakOpenIDConnectEndpoint(req, varKeycloakEndpointLogout, "logout")
 }
 
@@ -619,11 +620,11 @@ func (c *ConfigurationData) GetKeycloakDevModeURL() string {
 	return devModeKeycloakURL
 }
 
-func (c *ConfigurationData) getKeycloakOpenIDConnectEndpoint(req *goa.RequestData, endpointVarName string, pathSufix string) (string, error) {
+func (c *ConfigurationData) getKeycloakOpenIDConnectEndpoint(req *http.Request, endpointVarName string, pathSufix string) (string, error) {
 	return c.getKeycloakEndpoint(req, endpointVarName, c.openIDConnectPath(pathSufix))
 }
 
-func (c *ConfigurationData) getKeycloakEndpoint(req *goa.RequestData, endpointVarName string, pathSufix string) (string, error) {
+func (c *ConfigurationData) getKeycloakEndpoint(req *http.Request, endpointVarName string, pathSufix string) (string, error) {
 	if c.v.IsSet(endpointVarName) {
 		return c.v.GetString(endpointVarName), nil
 	}
@@ -654,7 +655,7 @@ func (c *ConfigurationData) openIDConnectPath(suffix string) string {
 	return "auth/realms/" + c.GetKeycloakRealm() + "/protocol/openid-connect/" + suffix
 }
 
-func (c *ConfigurationData) getKeycloakURL(req *goa.RequestData, path string) (string, error) {
+func (c *ConfigurationData) getKeycloakURL(req *http.Request, path string) (string, error) {
 	scheme := "http"
 	if req.URL != nil && req.URL.Scheme == "https" { // isHTTPS
 		scheme = "https"

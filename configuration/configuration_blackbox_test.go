@@ -14,7 +14,6 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	. "github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/goadesign/goa"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,19 +26,15 @@ const (
 	defaultValuesConfigFilePath = "" // when the code defaults are to be used, the path to config file is ""
 )
 
-var reqLong *goa.RequestData
-var reqShort *goa.RequestData
+var reqLong *http.Request
+var reqShort *http.Request
 var config *ConfigurationData
 
 func TestMain(m *testing.M) {
 	resetConfiguration(defaultConfigFilePath)
 
-	reqLong = &goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}
-	reqShort = &goa.RequestData{
-		Request: &http.Request{Host: "api.domain.org"},
-	}
+	reqLong = &http.Request{Host: "api.service.domain.org"}
+	reqShort = &http.Request{Host: "api.domain.org"}
 	os.Exit(m.Run())
 }
 
@@ -47,7 +42,7 @@ func resetConfiguration(configPath string) {
 	var err error
 
 	// calling NewConfigurationData("") is same as GetConfigurationData()
-	config, err = NewConfigurationData(configPath)
+	config, err = NewConfigurationData(configPath, false)
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
@@ -101,7 +96,7 @@ func TestGetKeycloakEndpointAdminDevModeOK(t *testing.T) {
 
 func TestGetKeycloakEndpointAdminSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "F8_KEYCLOAK_ENDPOINT_ADMIN", config.GetKeycloakEndpointAdmin)
+	checkGetKeycloakEndpointSetByEnvVariableOK(t, "F8_KEYCLOAK_ENDPOINT_ADMIN", config.GetKeycloakEndpointAdmin)
 }
 
 func TestGetKeycloakEndpointAuthzResourcesetDevModeOK(t *testing.T) {
@@ -112,7 +107,7 @@ func TestGetKeycloakEndpointAuthzResourcesetDevModeOK(t *testing.T) {
 
 func TestGetKeycloakEndpointAuthzResourcesetSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "F8_KEYCLOAK_ENDPOINT_AUTHZ_RESOURCESET", config.GetKeycloakEndpointAuthzResourceset)
+	checkGetKeycloakEndpointSetByEnvVariableOK(t, "F8_KEYCLOAK_ENDPOINT_AUTHZ_RESOURCESET", config.GetKeycloakEndpointAuthzResourceset)
 }
 
 func TestGetKeycloakEndpointClientsDevModeOK(t *testing.T) {
@@ -123,7 +118,7 @@ func TestGetKeycloakEndpointClientsDevModeOK(t *testing.T) {
 
 func TestGetKeycloakEndpoinClientsSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "F8_KEYCLOAK_ENDPOINT_CLIENTS", config.GetKeycloakEndpointClients)
+	checkGetKeycloakEndpointSetByEnvVariableOK(t, "F8_KEYCLOAK_ENDPOINT_CLIENTS", config.GetKeycloakEndpointClients)
 }
 
 func TestGetKeycloakEndpointAuthDevModeOK(t *testing.T) {
@@ -134,7 +129,7 @@ func TestGetKeycloakEndpointAuthDevModeOK(t *testing.T) {
 
 func TestGetKeycloakEndpointAuthSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "F8_KEYCLOAK_ENDPOINT_AUTH", config.GetKeycloakEndpointAuth)
+	checkGetKeycloakEndpointSetByEnvVariableOK(t, "F8_KEYCLOAK_ENDPOINT_AUTH", config.GetKeycloakEndpointAuth)
 }
 
 func TestGetKeycloakEndpointLogoutDevModeOK(t *testing.T) {
@@ -145,7 +140,7 @@ func TestGetKeycloakEndpointLogoutDevModeOK(t *testing.T) {
 
 func TestGetKeycloakEndpointLogoutSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "F8_KEYCLOAK_ENDPOINT_LOGOUT", config.GetKeycloakEndpointLogout)
+	checkGetKeycloakEndpointSetByEnvVariableOK(t, "F8_KEYCLOAK_ENDPOINT_LOGOUT", config.GetKeycloakEndpointLogout)
 }
 
 func TestGetKeycloakEndpointTokenOK(t *testing.T) {
@@ -156,7 +151,7 @@ func TestGetKeycloakEndpointTokenOK(t *testing.T) {
 
 func TestGetKeycloakEndpointTokenSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "F8_KEYCLOAK_ENDPOINT_TOKEN", config.GetKeycloakEndpointToken)
+	checkGetKeycloakEndpointSetByEnvVariableOK(t, "F8_KEYCLOAK_ENDPOINT_TOKEN", config.GetKeycloakEndpointToken)
 }
 
 func TestGetKeycloakEndpointUserInfoOK(t *testing.T) {
@@ -167,7 +162,7 @@ func TestGetKeycloakEndpointUserInfoOK(t *testing.T) {
 
 func TestGetKeycloakEndpointUserInfoSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "F8_KEYCLOAK_ENDPOINT_USERINFO", config.GetKeycloakEndpointUserInfo)
+	checkGetKeycloakEndpointSetByEnvVariableOK(t, "F8_KEYCLOAK_ENDPOINT_USERINFO", config.GetKeycloakEndpointUserInfo)
 }
 
 func TestGetKeycloakEndpointEntitlementOK(t *testing.T) {
@@ -178,7 +173,7 @@ func TestGetKeycloakEndpointEntitlementOK(t *testing.T) {
 
 func TestGetKeycloakEndpointEntitlementSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "F8_KEYCLOAK_ENDPOINT_ENTITLEMENT", config.GetKeycloakEndpointEntitlement)
+	checkGetKeycloakEndpointSetByEnvVariableOK(t, "F8_KEYCLOAK_ENDPOINT_ENTITLEMENT", config.GetKeycloakEndpointEntitlement)
 }
 
 func TestGetKeycloakEndpointBrokerOK(t *testing.T) {
@@ -189,7 +184,7 @@ func TestGetKeycloakEndpointBrokerOK(t *testing.T) {
 
 func TestGetKeycloakEndpointBrokerSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "F8_KEYCLOAK_ENDPOINT_BROKER", config.GetKeycloakEndpointBroker)
+	checkGetKeycloakEndpointSetByEnvVariableOK(t, "F8_KEYCLOAK_ENDPOINT_BROKER", config.GetKeycloakEndpointBroker)
 }
 
 func TestGetKeycloakUserInfoEndpointOK(t *testing.T) {
@@ -200,10 +195,10 @@ func TestGetKeycloakUserInfoEndpointOK(t *testing.T) {
 
 func TestGetKeycloakUserInfoEndpointOKrSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "F8_KEYCLOAK_ENDPOINT_ACCOUNT", config.GetKeycloakAccountEndpoint)
+	checkGetKeycloakEndpointSetByEnvVariableOK(t, "F8_KEYCLOAK_ENDPOINT_ACCOUNT", config.GetKeycloakAccountEndpoint)
 }
 
-func checkGetKeycloakEndpointOK(t *testing.T, expectedEndpoint string, getEndpoint func(req *goa.RequestData) (string, error)) {
+func checkGetKeycloakEndpointOK(t *testing.T, expectedEndpoint string, getEndpoint func(req *http.Request) (string, error)) {
 	url, err := getEndpoint(reqLong)
 	assert.Nil(t, err)
 	// In dev mode it's always the defualt value regardless of the request
@@ -289,7 +284,7 @@ func generateEnvKey(yamlKey string) string {
 	return "F8_" + strings.ToUpper(strings.Replace(yamlKey, ".", "_", -1))
 }
 
-func checkGetKeycloakEndpointSetByEnvVaribaleOK(t *testing.T, envName string, getEndpoint func(req *goa.RequestData) (string, error)) {
+func checkGetKeycloakEndpointSetByEnvVariableOK(t *testing.T, envName string, getEndpoint func(req *http.Request) (string, error)) {
 	envValue := uuid.NewV4().String()
 	env := os.Getenv(envName)
 	defer func() {
