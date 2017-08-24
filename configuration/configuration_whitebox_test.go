@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -173,12 +172,8 @@ func TestRedirectURLsForLocalhostRequestAreExcepted(t *testing.T) {
 }
 
 func validateRedirectURL(t *testing.T, request string, redirect string) bool {
-	r, err := http.NewRequest("", request, nil)
+	req, err := http.NewRequest("", request, nil)
 	require.Nil(t, err)
-	req := &goa.RequestData{
-		Request: r,
-	}
-
 	whitelist, err := config.checkLocalhostRedirectException(req)
 	require.Nil(t, err)
 
