@@ -2,14 +2,13 @@ package auth
 
 import (
 	"context"
-
-	"github.com/goadesign/goa"
+	"net/http"
 )
 
 // AuthzPolicyManager represents a space collaborators policy manager
 type AuthzPolicyManager interface {
-	GetPolicy(ctx context.Context, request *goa.RequestData, policyID string) (*KeycloakPolicy, *string, error)
-	UpdatePolicy(ctx context.Context, request *goa.RequestData, policy KeycloakPolicy, pat string) error
+	GetPolicy(ctx context.Context, request *http.Request, policyID string) (*KeycloakPolicy, *string, error)
+	UpdatePolicy(ctx context.Context, request *http.Request, policy KeycloakPolicy, pat string) error
 	AddUserToPolicy(p *KeycloakPolicy, userID string) bool
 	RemoveUserFromPolicy(p *KeycloakPolicy, userID string) bool
 }
@@ -35,7 +34,7 @@ func (m *KeycloakPolicyManager) RemoveUserFromPolicy(p *KeycloakPolicy, userID s
 }
 
 // GetPolicy obtains the space collaborators policy
-func (m *KeycloakPolicyManager) GetPolicy(ctx context.Context, request *goa.RequestData, policyID string) (*KeycloakPolicy, *string, error) {
+func (m *KeycloakPolicyManager) GetPolicy(ctx context.Context, request *http.Request, policyID string) (*KeycloakPolicy, *string, error) {
 	clientsEndpoint, err := m.configuration.GetKeycloakEndpointClients(request)
 	if err != nil {
 		return nil, nil, err
@@ -59,7 +58,7 @@ func (m *KeycloakPolicyManager) GetPolicy(ctx context.Context, request *goa.Requ
 }
 
 // UpdatePolicy updates the space collaborators policy
-func (m *KeycloakPolicyManager) UpdatePolicy(ctx context.Context, request *goa.RequestData, policy KeycloakPolicy, pat string) error {
+func (m *KeycloakPolicyManager) UpdatePolicy(ctx context.Context, request *http.Request, policy KeycloakPolicy, pat string) error {
 	clientsEndpoint, err := m.configuration.GetKeycloakEndpointClients(request)
 	if err != nil {
 		return err

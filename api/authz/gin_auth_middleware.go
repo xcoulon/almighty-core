@@ -1,7 +1,6 @@
-package handler
+package authz
 
 import (
-	"context"
 	"strconv"
 	"time"
 
@@ -11,10 +10,7 @@ import (
 	ginjwt "github.com/appleboy/gin-jwt"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/configuration"
-	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
-	"github.com/fabric8-services/fabric8-wit/space/authz"
-	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/gin-gonic/gin"
 	errs "github.com/pkg/errors"
 	jwt "gopkg.in/dgrijalva/jwt-go.v3"
@@ -40,18 +36,17 @@ func NewJWTAuthMiddleware(db application.DB) *ginjwt.GinJWTMiddleware {
 		// signing algorithm - possible values are HS256, HS384, HS512
 		// asymetric algorithms not supported yet. See https://github.com/appleboy/gin-jwt/pull/80
 		SigningAlgorithm: "HS256",
-		// Authenticator: func(userId string, password string, ctx *gin.Context) (string, bool) {
-		// 	log.Info(ctx, map[string]interface{}{"userID": userId}, "Authenticating user...")
-		// 	if (userId == "admin" && password == "admin") || (userId == "test" && password == "test") {
-		// 		log.Info(ctx, map[string]interface{}{"userID": userId}, "user authenticated")
-		// 		return userId, true
-		// 	}
-		// 	log.Warn(ctx, map[string]interface{}{"userID": userId}, "user not authenticated")
-		// 	return userId, false
-		// },
-		IdentityHandler: NewIdentityHandler(),
-		// Authenticator:   NewAuthenticationHandler(db),
-		Authorizator: NewAuthorizatorHandler(db),
+		IdentityHandler:  NewIdentityHandler(),
+		Authorizator:     NewAuthorizationHandler(db),
+		// Callback function that will be called during login.
+		// Using this function it is possible to add additional payload data to the webtoken.
+		// The data is then made available during requests via c.Get("JWT_PAYLOAD").
+		// Note that the payload is not encrypted.
+		// The attributes mentioned on jwt.io can't be used as keys for the map.
+		// Optional, by default no additional data will be set.
+		PayloadFunc: NewPayloadFunc(),
+
+		// Authorizator: NewAuthorizatorHandler(db),
 		Unauthorized: NewUnauthorizedHandler(),
 		// TokenLookup is a string in the form of "<source>:<name>" that is used
 		// to extract token from the request.
@@ -88,10 +83,11 @@ func NewIdentityHandler() func(jwt.MapClaims) string {
 	}
 }
 
-//NewAuthorizatorHandler initializes the authorizator handler of the JWT Auth middleware
-func NewAuthorizatorHandler(db application.DB) func(string, *gin.Context) bool {
+// NewAuthorizationHandler initializes the authorizator handler of the JWT Auth middleware
+// This handler checks that the given userID corresponds to a valid identity in the DB.
+func NewAuthorizationHandler(db application.DB) func(string, *gin.Context) bool {
 	return func(userID string, ctx *gin.Context) bool {
-		log.Debug(ctx, map[string]interface{}{"userID": userID}, "authorizing user...")
+		log.Debug(ctx, map[string]interface{}{"userID": userID}, "authenticating user...")
 		err := db.Identities().CheckExists(ctx, userID)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{"userID": userID}, "user NOT authorized")
@@ -102,6 +98,33 @@ func NewAuthorizatorHandler(db application.DB) func(string, *gin.Context) bool {
 		return true
 	}
 }
+
+// NewPayloadFunc is a callback function that will be called during login.
+// Using this function it is possible to add additional payload data to the webtoken.
+// The data is then made available during requests via c.Get("JWT_PAYLOAD").
+// Note that the payload is not encrypted.
+// The attributes mentioned on jwt.io can't be used as keys for the map.
+func NewPayloadFunc() func(userID string) map[string]interface{} {
+	return func(userID string) map[string]interface{} {
+		// TODO: during login, request the authorizations from KC for the given user
+		return nil
+	}
+}
+
+// NewAuthorizatorHandler initializes the authorizator handler of the JWT Auth middleware
+// func NewAuthorizatorHandler(db application.DB) func(string, *gin.Context) bool {
+// 	return func(userID string, ctx *gin.Context) bool {
+// 		log.Debug(ctx, map[string]interface{}{"userID": userID}, "authorizing user...")
+// 		err := db.Identities().CheckExists(ctx, userID)
+// 		if err != nil {
+// 			log.Error(ctx, map[string]interface{}{"userID": userID}, "user NOT authorized")
+// 			return false
+// 		}
+// 		log.Debug(ctx, map[string]interface{}{"userID": userID}, "user authorized")
+// 		ctx.Set(USER_ID, userID)
+// 		return true
+// 	}
+// }
 
 //NewUnauthorizedHandler initializes the unauthorized handler of the JWT Auth middleware
 func NewUnauthorizedHandler() func(*gin.Context, int, string) {
@@ -129,49 +152,4 @@ func GetUserID(ctx *gin.Context) (*uuid.UUID, error) {
 		return nil, errs.Errorf("request context did not contain a valid UUID entry for the current user's ID: '%s'", ctxValue)
 	}
 	return nil, errs.New("request context did not contain an entry for the current user's ID")
-}
-
-//WorkItemUpdateAuthorizator returns a new handler that checks if the current user is allowed to edit the work item
-func WorkItemUpdateAuthorizator(db application.DB) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		workitemID, err := uuid.FromString(ctx.Param("workitemID")) // the workitem ID param
-		if err != nil {
-			abortWithError(ctx, err)
-			return
-		}
-		wi, err := db.WorkItems().LoadByID(ctx, workitemID)
-		if err != nil {
-			abortWithError(ctx, err)
-			return
-		}
-		creator := wi.Fields[workitem.SystemCreator]
-		if creator == nil {
-			abortWithError(ctx, errors.NewBadParameterError("workitem.SystemCreator", nil))
-		}
-		currentUserID, _ := GetUserID(ctx)
-		if currentUserID == nil {
-			abortWithError(ctx, errors.NewBadParameterError("workitem.SystemCreator", nil))
-		}
-		log.Debug(ctx, map[string]interface{}{"wi": wi, "creator": creator, "current_user": currentUserID}, "Authorizing work item update...")
-		authorized, err := authorizeWorkitemEditor(ctx, db, wi.SpaceID, creator.(string), currentUserID.String())
-		if err != nil {
-			abortWithError(ctx, err)
-			return
-		}
-		if !authorized {
-			abortWithError(ctx, errors.NewForbiddenError("user is not allowed to update this work item"))
-		}
-	}
-}
-
-// Returns true if the user is the work item creator or space collaborator
-func authorizeWorkitemEditor(ctx context.Context, db application.DB, spaceID uuid.UUID, creatorID string, editorID string) (bool, error) {
-	if editorID == creatorID {
-		return true, nil
-	}
-	authorized, err := authz.Authorize(ctx, spaceID.String())
-	if err != nil {
-		return false, errors.NewUnauthorizedError(err.Error())
-	}
-	return authorized, nil
 }

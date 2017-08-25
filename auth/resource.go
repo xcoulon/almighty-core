@@ -2,19 +2,19 @@ package auth
 
 import (
 	"context"
+	"net/http"
 
 	"fmt"
 
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
-	"github.com/goadesign/goa"
 	"github.com/satori/go.uuid"
 )
 
 // AuthzResourceManager represents a space resource manager
 type AuthzResourceManager interface {
-	CreateResource(ctx context.Context, request *goa.RequestData, name string, rType string, uri *string, scopes *[]string, userID string) (*Resource, error)
-	DeleteResource(ctx context.Context, request *goa.RequestData, resource Resource) error
+	CreateResource(ctx context.Context, request *http.Request, name string, rType string, uri *string, scopes *[]string, userID string) (*Resource, error)
+	DeleteResource(ctx context.Context, request *http.Request, resource Resource) error
 }
 
 // KeycloakResourceManager implements AuthzResourceManager interface
@@ -31,11 +31,11 @@ type Resource struct {
 
 // KeycloakConfiguration represents a keycloak configuration
 type KeycloakConfiguration interface {
-	GetKeycloakEndpointAuthzResourceset(*goa.RequestData) (string, error)
-	GetKeycloakEndpointToken(*goa.RequestData) (string, error)
-	GetKeycloakEndpointClients(*goa.RequestData) (string, error)
-	GetKeycloakEndpointAdmin(*goa.RequestData) (string, error)
-	GetKeycloakEndpointEntitlement(*goa.RequestData) (string, error)
+	GetKeycloakEndpointAuthzResourceset(*http.Request) (string, error)
+	GetKeycloakEndpointToken(*http.Request) (string, error)
+	GetKeycloakEndpointClients(*http.Request) (string, error)
+	GetKeycloakEndpointAdmin(*http.Request) (string, error)
+	GetKeycloakEndpointEntitlement(*http.Request) (string, error)
 	GetKeycloakClientID() string
 	GetKeycloakSecret() string
 }
@@ -46,7 +46,7 @@ func NewKeycloakResourceManager(config KeycloakConfiguration) *KeycloakResourceM
 }
 
 // CreateResource creates a keycloak resource and associated permission and policy
-func (m *KeycloakResourceManager) CreateResource(ctx context.Context, request *goa.RequestData, name string, rType string, uri *string, scopes *[]string, userID string) (*Resource, error) {
+func (m *KeycloakResourceManager) CreateResource(ctx context.Context, request *http.Request, name string, rType string, uri *string, scopes *[]string, userID string) (*Resource, error) {
 	pat, err := getPat(ctx, request, m.configuration)
 	if err != nil {
 		return nil, err
@@ -128,7 +128,7 @@ func (m *KeycloakResourceManager) CreateResource(ctx context.Context, request *g
 	return newResource, nil
 }
 
-func getPat(ctx context.Context, requestData *goa.RequestData, config KeycloakConfiguration) (string, error) {
+func getPat(ctx context.Context, requestData *http.Request, config KeycloakConfiguration) (string, error) {
 	endpoint, err := config.GetKeycloakEndpointToken(requestData)
 	if err != nil {
 		return "", err
@@ -141,7 +141,7 @@ func getPat(ctx context.Context, requestData *goa.RequestData, config KeycloakCo
 }
 
 // DeleteResource deletes the keycloak resource and associated permission and policy
-func (m *KeycloakResourceManager) DeleteResource(ctx context.Context, request *goa.RequestData, resource Resource) error {
+func (m *KeycloakResourceManager) DeleteResource(ctx context.Context, request *http.Request, resource Resource) error {
 	authzEndpoint, err := m.configuration.GetKeycloakEndpointAuthzResourceset(request)
 	if err != nil {
 		return err

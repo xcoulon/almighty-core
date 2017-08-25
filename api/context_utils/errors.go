@@ -1,4 +1,4 @@
-package handler
+package context
 
 import (
 	"net/http"
@@ -11,8 +11,8 @@ import (
 	errs "github.com/pkg/errors"
 )
 
-// abortWithError aborts the context with the given error
-func abortWithError(ctx *gin.Context, err error) {
+// AbortWithError aborts the context with the given error
+func AbortWithError(ctx *gin.Context, err error) {
 	status := getHTTPStatus(err)
 	log.Error(ctx, map[string]interface{}{"status": status, "error": err.Error()}, "Aborting context after error occurred")
 	ctx.Header("Content-Type", jsonapi.MediaType)

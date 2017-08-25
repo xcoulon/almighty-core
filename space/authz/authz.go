@@ -13,7 +13,6 @@ import (
 	tokencontext "github.com/fabric8-services/fabric8-wit/login/tokencontext"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/token"
-	"github.com/gin-gonic/gin"
 	errs "github.com/pkg/errors"
 
 	contx "context"
@@ -187,26 +186,6 @@ func InjectAuthzService(service AuthzService) goa.Middleware {
 			ctxWithAuthzServ := tokencontext.ContextWithSpaceAuthzService(ctx, &KeycloakAuthzServiceManager{Service: service, entitlementEndpoint: endpoint})
 			return h(ctxWithAuthzServ, rw, req)
 		}
-	}
-}
-
-// AuthzServiceHandler returns a a gin-gonic handler responsible for setting up AuthzService in the context for every request.
-func AuthzServiceHandler(service AuthzService) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		config := service.Configuration()
-		var endpoint string
-		if config != nil {
-			var err error
-			endpoint, err = config.GetKeycloakEndpointEntitlement(ctx.Request)
-			if err != nil {
-				log.Error(ctx, map[string]interface{}{
-					"err": err,
-				}, "unable to get entitlement endpoint")
-				ctx.AbortWithError(http.StatusInternalServerError, err)
-			}
-		}
-
-		tokencontext.ContextSetSpaceAuthzService(ctx, &KeycloakAuthzServiceManager{Service: service, entitlementEndpoint: endpoint})
 	}
 }
 

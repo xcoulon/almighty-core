@@ -182,12 +182,12 @@ type Permissions struct {
 }
 
 // VerifyResourceUser returns true if the user among the resource collaborators
-func VerifyResourceUser(ctx context.Context, token string, resourceName string, entitlementEndpoint string) (bool, error) {
+func VerifyResourceUser(ctx context.Context, userAccessToken string, resourceName string, entitlementEndpoint string) (bool, error) {
 	resource := EntitlementResource{
 		Permissions:     []ResourceSet{{Name: resourceName}},
 		MetaInformation: EntitlementMeta{Limit: EntitlementLimit}, // We dont need to fetch everything for 1 resource
 	}
-	ent, err := GetEntitlement(ctx, entitlementEndpoint, &resource, token)
+	ent, err := GetEntitlement(ctx, entitlementEndpoint, &resource, userAccessToken)
 	if err != nil {
 		return false, err
 	}
@@ -645,7 +645,7 @@ func UpdatePolicy(ctx context.Context, clientsEndpoint string, clientID string, 
 // GetEntitlement obtains Entitlement for specific resource.
 // If entitlementResource == nil then Entitlement for all resources available to the user is returned.
 // Returns (nil, nil) if response status == Forbiden which means the user doesn't have permissions to obtain Entitlement
-func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlementResource *EntitlementResource, userAccesToken string) (*string, error) {
+func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlementResource *EntitlementResource, userAccessToken string) (*string, error) {
 	var req *http.Request
 	var reqErr error
 	if entitlementResource != nil {
@@ -669,8 +669,7 @@ func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlement
 		}, "unable to create http request")
 		return nil, errors.NewInternalError(ctx, errs.Wrap(reqErr, "unable to create http request"))
 	}
-
-	req.Header.Add("Authorization", "Bearer "+userAccesToken)
+	req.Header.Add("Authorization", userAccessToken)
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
