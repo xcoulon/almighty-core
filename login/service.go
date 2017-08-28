@@ -630,8 +630,8 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 		log.Error(ctx, map[string]interface{}{
 			"token": accessToken,
 			"err":   err,
-		}, "unable to parse the token")
-		return nil, nil, errors.New("unable to parse the token " + err.Error())
+		}, "error while parsing the token")
+		return nil, nil, errs.Wrapf(err, "error while parsing the token")
 	}
 
 	if err := checkClaims(claims); err != nil {
@@ -639,7 +639,7 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 			"token": accessToken,
 			"err":   err,
 		}, "invalid keycloak token claims")
-		return nil, nil, errors.New("invalid keycloak token claims " + err.Error())
+		return nil, nil, errs.Wrapf(err, "invalid keycloak token claims")
 	}
 
 	keycloakIdentityID, _ := uuid.FromString(claims.Subject)
@@ -649,7 +649,7 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 			"keycloak_identity_id": keycloakIdentityID,
 			"err": err,
 		}, "unable to  query for an identity by ID")
-		return nil, nil, errors.New("Error during querying for an identity by ID " + err.Error())
+		return nil, nil, errs.Wrapf(err, "error while querying for an identity by ID")
 	}
 
 	if len(identities) == 0 {
@@ -669,7 +669,7 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 				"keycloak_identity_id": keycloakIdentityID,
 				"err": err,
 			}, "unable to create user/identity")
-			return nil, nil, errors.New("failed to update user/identity from claims" + err.Error())
+			return nil, nil, errs.Wrapf(err, "failed to update user/identity from claims")
 		}
 		err = application.Transactional(keycloak.db, func(appl application.Application) error {
 			err := appl.Users().Create(ctx, user)
@@ -691,7 +691,7 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 				"username":             claims.Username,
 				"err":                  err,
 			}, "unable to create user/identity")
-			return nil, nil, errors.New("failed to create user/identity " + err.Error())
+			return nil, nil, errs.Wrapf(err, "failed to create user/identity")
 		}
 
 	} else {
@@ -711,7 +711,7 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 				"keycloak_identity_id": keycloakIdentityID,
 				"err": err,
 			}, "unable to create user/identity")
-			return nil, nil, errors.New("failed to update user/identity from claims" + err.Error())
+			return nil, nil, errs.Wrapf(err, "failed to update user/identity from claims")
 		} else if isChanged {
 			err = application.Transactional(keycloak.db, func(appl application.Application) error {
 				err = appl.Users().Save(ctx, user)
@@ -720,7 +720,7 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 						"user_id": user.ID,
 						"err":     err,
 					}, "unable to update user")
-					return errors.New("failed to update user " + err.Error())
+					return errs.Wrapf(err, "failed to update user")
 				}
 				err = appl.Identities().Save(ctx, identity)
 				if err != nil {
@@ -728,7 +728,7 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 						"user_id": identity.ID,
 						"err":     err,
 					}, "unable to update identity")
-					return errors.New("failed to update identity " + err.Error())
+					return errs.Wrapf(err, "failed to update identity")
 				}
 				return err
 			})
@@ -738,7 +738,7 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 					"username":             claims.Username,
 					"err":                  err,
 				}, "unable to update user/identity")
-				return nil, nil, errors.New("failed to update user/identity " + err.Error())
+				return nil, nil, errs.Wrapf(err, "failed to update user/identity")
 			}
 		}
 	}

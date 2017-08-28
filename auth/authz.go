@@ -774,6 +774,10 @@ func ValidateKeycloakUser(ctx context.Context, adminEndpoint string, userID, pro
 
 // GetProtectedAPIToken obtains a Protected API Token (PAT) from Keycloak
 func GetProtectedAPIToken(ctx context.Context, openidConnectTokenURL string, clientID string, clientSecret string) (string, error) {
+	log.Warn(ctx, map[string]interface{}{
+		"openidConnectTokenURL": openidConnectTokenURL,
+		"clientID":              clientID,
+	}, "obtaining Protected API token...")
 	client := &http.Client{Timeout: 10 * time.Second}
 	res, err := client.PostForm(openidConnectTokenURL, url.Values{
 		"client_id":     {clientID},
@@ -783,6 +787,11 @@ func GetProtectedAPIToken(ctx context.Context, openidConnectTokenURL string, cli
 	if err != nil {
 		return "", errors.NewInternalError(ctx, errs.Wrap(err, "error when obtaining token"))
 	}
+	log.Warn(ctx, map[string]interface{}{
+		"openidConnectTokenURL": openidConnectTokenURL,
+		"clientID":              clientID,
+		"statusCode":            res.StatusCode,
+	}, "obtained Protected API token response")
 	defer res.Body.Close()
 	switch res.StatusCode {
 	case http.StatusOK:

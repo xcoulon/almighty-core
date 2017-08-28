@@ -9,11 +9,11 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-func createOneRandomUserIdentity(ctx context.Context, db *gorm.DB) *account.Identity {
+func createOneRandomUserIdentity(ctx context.Context, db *gorm.DB, username string) *account.Identity {
 	newUserUUID := uuid.NewV4()
 	identityRepo := account.NewIdentityRepository(db)
 	identity := account.Identity{
-		Username: "Test User Integration Random",
+		Username: username,
 		ID:       newUserUUID,
 	}
 	err := identityRepo.Create(ctx, &identity)

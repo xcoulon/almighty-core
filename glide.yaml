@@ -10,8 +10,8 @@ import:
   - design
 - package: github.com/gin-gonic/gin
   version: ^1.2.0
-- package: github.com/appleboy/gin-jwt
-  version: ^v2.3.1
+- package: github.com/xcoulon/gin-jwt
+  # version: ^v2.3.1
 - package: gopkg.in/dgrijalva/jwt-go.v3
   version: d2709f9f1f31ebcda9651b03077758c1f3a0018c
 - package: github.com/google/jsonapi

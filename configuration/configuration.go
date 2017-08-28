@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"crypto/rsa"
 	"flag"
 	"fmt"
 	"net/http"
@@ -10,9 +11,11 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"
 
+	"github.com/fabric8-services/fabric8-tenant/keycloak"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/spf13/viper"
 )
@@ -113,8 +116,9 @@ var config *ConfigurationData
 
 // ConfigurationData encapsulates the Viper configuration object which stores the configuration data in-memory.
 type ConfigurationData struct {
-	v         *viper.Viper
-	migrateDB bool
+	v              *viper.Viper
+	migrateDB      bool
+	tokenPublicKey *rsa.PublicKey // the public key is cached in the config once it has been loaded successfully
 }
 
 // Get gets the config, making sure it's loaded once and only once.
@@ -531,8 +535,24 @@ func (c *ConfigurationData) GetTokenPrivateKey() []byte {
 
 // GetTokenPublicKey returns the public key (as set via config file or environment variable)
 // that is used to decrypt the authentication token.
-func (c *ConfigurationData) GetTokenPublicKey() []byte {
-	return []byte(c.v.GetString(varTokenPublicKey))
+func (c *ConfigurationData) GetTokenPublicKey() (*rsa.PublicKey, error) {
+	if c.tokenPublicKey == nil {
+		var err error
+		// retrieve the public key in the KC instance corresponding to the dev mode when it's enabled.
+		if c.IsPostgresDeveloperModeEnabled() {
+			c.tokenPublicKey, err = keycloak.GetPublicKey(keycloak.Config{
+				BaseURL: c.GetKeycloakDevModeURL(),
+				Realm:   c.GetKeycloakRealm(),
+			})
+			if err != nil {
+				log.Panic(nil, nil, "Unable to load public key: ", err.Error())
+			}
+		} else {
+			c.tokenPublicKey, err = jwt.ParseRSAPublicKeyFromPEM([]byte(c.v.GetString(varTokenPublicKey)))
+		}
+		return c.tokenPublicKey, err
+	}
+	return c.tokenPublicKey, nil
 }
 
 // GetAuthNotApprovedRedirect returns the URL to redirect to if the user is not approved
@@ -566,11 +586,14 @@ func (c *ConfigurationData) GetKeycloakDomainPrefix() string {
 // GetKeycloakRealm returns the keycloak realm name
 func (c *ConfigurationData) GetKeycloakRealm() string {
 	if c.v.IsSet(varKeycloakRealm) {
+		log.Warnf("Keycloak realm: %s (custom)", c.v.GetString(varKeycloakRealm))
 		return c.v.GetString(varKeycloakRealm)
 	}
 	if c.IsPostgresDeveloperModeEnabled() {
+		log.Warnf("Keycloak realm: %s (dev mode)", devModeKeycloakRealm)
 		return devModeKeycloakRealm
 	}
+	log.Warnf("Keycloak realm: %s (default)", defaultKeycloakRealm)
 	return defaultKeycloakRealm
 }
 

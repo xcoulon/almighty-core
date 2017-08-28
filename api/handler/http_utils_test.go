@@ -17,7 +17,7 @@ import (
 
 func makeTokenString(SigningAlgorithm string, identity string, editableSpaces []uuid.UUID) string {
 	if SigningAlgorithm == "" {
-		SigningAlgorithm = "HS256"
+		SigningAlgorithm = "RS256"
 	}
 	token := jwt.New(jwt.GetSigningMethod(SigningAlgorithm))
 	claims := token.Claims.(jwt.MapClaims)
@@ -34,6 +34,7 @@ func makeTokenString(SigningAlgorithm string, identity string, editableSpaces []
 // Execute submits the request and returns the response recording fo subseauent verifications
 func Execute(s gormtestsupport.GinkgoTestSuite, r *http.Request) *httptest.ResponseRecorder {
 	rr := httptest.NewRecorder()
+	// TODO: see how to move this HTTP engine setup in the BeforeSuite() function
 	httpEngine := api.NewGinEngine(gormapplication.NewGormDB(s.DB), nil, s.Configuration)
 	httpEngine.ServeHTTP(rr, r)
 	GinkgoT().Logf("Response status: %d", rr.Code)

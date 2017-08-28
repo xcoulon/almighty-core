@@ -110,7 +110,7 @@ func (rest *TestSpaceREST) TestFailValidationSpaceNameStartWith() {
 	assert.Contains(rest.T(), err.Error(), "response.name must match the regexp")
 }
 
-func (rest *TestSpaceREST) TestSuccessCreateSpace() {
+func (rest *TestSpaceREST) TestSuccessCreateSpaceOK() {
 	// given
 	name := testsupport.CreateRandomValidTestName("TestSuccessCreateSpace-")
 	p := minimumRequiredCreateSpace()

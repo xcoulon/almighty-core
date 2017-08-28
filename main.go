@@ -99,7 +99,7 @@ func main() {
 
 	service.WithLogger(goalogrus.New(log.Logger()))
 
-	publicKey, err := token.ParsePublicKey(config.GetTokenPublicKey())
+	publicKey, err := config.GetTokenPublicKey()
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
 			"err": err,

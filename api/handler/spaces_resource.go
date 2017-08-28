@@ -5,10 +5,17 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/fabric8-services/fabric8-wit/api/authz"
 	contextutils "github.com/fabric8-services/fabric8-wit/api/context_utils"
 	"github.com/fabric8-services/fabric8-wit/api/model"
 	"github.com/fabric8-services/fabric8-wit/application"
+	"github.com/fabric8-services/fabric8-wit/area"
+	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/iteration"
 	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/gin-gonic/gin"
 	"github.com/google/jsonapi"
 	errs "github.com/pkg/errors"
@@ -23,15 +30,148 @@ type SpacesResourceConfiguration interface {
 
 // SpacesResource the resource for spaces
 type SpacesResource struct {
-	db     application.DB
-	config SpacesResourceConfiguration
+	db              application.DB
+	config          SpacesResourceConfiguration
+	resourceManager auth.AuthzResourceManager
 }
 
 // NewSpacesResource returns a new SpacesResource
-func NewSpacesResource(db application.DB, config SpacesResourceConfiguration) SpacesResource {
+func NewSpacesResource(db application.DB, config SpacesResourceConfiguration, resourceManager auth.AuthzResourceManager) SpacesResource {
 	return SpacesResource{
-		db:     db,
-		config: config,
+		db:              db,
+		config:          config,
+		resourceManager: resourceManager,
+	}
+}
+
+type SpacesResourceCreateContext struct {
+	*gin.Context
+	Space model.Space `gin:"body"`
+}
+
+// OK Responds with a '200 OK' response
+func (ctx *SpacesResourceCreateContext) OK(result interface{}) {
+	OK(ctx.Context, result)
+}
+
+//NewSpacesResourceCreateContext initializes a new SpacesResourceCreateContext context from the 'gin' context
+func NewSpacesResourceCreateContext(ctx *gin.Context) (*SpacesResourceCreateContext, error) {
+	payload := model.Space{}
+	err := jsonapi.UnmarshalPayload(ctx.Request.Body, &payload)
+	if err != nil {
+		return nil, errors.NewConversionError(err.Error())
+	}
+	return &SpacesResourceCreateContext{
+		Context: ctx,
+		Space:   payload,
+	}, nil
+}
+
+const (
+	// APIStringTypeCodebase contains the JSON API type for codebases
+	spaceResourceType = "space"
+)
+
+var scopes = []string{"read:space", "admin:space"}
+
+// Create handles the space creation requests
+func (r SpacesResource) Create(ctx *gin.Context) {
+	createCtx, err := NewSpacesResourceCreateContext(ctx)
+	if err != nil {
+		contextutils.AbortWithError(ctx, err)
+		return
+	}
+	currentUserID, _ := authz.GetUserID(ctx)
+	if createCtx.Space.Name == "" {
+		contextutils.AbortWithError(ctx, errors.NewBadParameterError("name", createCtx.Space.Name))
+		return
+	}
+	spaceID := uuid.NewV4()
+	if createCtx.Space.ID != "" {
+		spaceID, err = uuid.FromString(createCtx.Space.ID)
+		if err != nil {
+			contextutils.AbortWithError(ctx, errors.NewBadParameterError("id", spaceID))
+			return
+		}
+	}
+
+	var createdSpace *space.Space
+	err = application.Transactional(r.db, func(appl application.Application) error {
+		newSpace := space.Space{
+			ID:          spaceID,
+			Name:        createCtx.Space.Name,
+			Description: createCtx.Space.Description,
+			OwnerId:     *currentUserID,
+		}
+		createdSpace, err = appl.Spaces().Create(ctx, &newSpace)
+		if err != nil {
+			return errs.Wrapf(err, "failed to create space named '%s'", newSpace.Name)
+		}
+		/*
+			Should we create the new area
+			- over the wire(service) something like app.NewCreateSpaceAreasContext(..), OR
+			- as part of a db transaction ?
+
+			The argument 'for' creating it at a transaction level is :
+			You absolutely need both space creation + area creation
+			to happen in a single transaction as per requirements.
+		*/
+
+		newArea := area.Area{
+			ID:      uuid.NewV4(),
+			SpaceID: createdSpace.ID,
+			Name:    createdSpace.Name,
+		}
+		err = appl.Areas().Create(ctx, &newArea)
+		if err != nil {
+			return errs.Wrapf(err, "failed to create area for space named '%s'", createdSpace.Name)
+		}
+
+		// Similar to above, we create a root iteration for this new space
+		newIteration := iteration.Iteration{
+			ID:      uuid.NewV4(),
+			SpaceID: createdSpace.ID,
+			Name:    createdSpace.Name,
+		}
+		err = appl.Iterations().Create(ctx, &newIteration)
+		if err != nil {
+			return errs.Wrapf(err, "failed to create iteration for space named '%s'", createdSpace.Name)
+		}
+
+		kcSpaceResource, err := r.resourceManager.CreateResource(ctx, ctx.Request, spaceID.String(), spaceResourceType, &createdSpace.Name, &scopes, currentUserID.String())
+		if err != nil {
+			return errs.Wrapf(err, "failed to create KC resource for space with name '%s'", createdSpace.Name)
+		}
+		// finally, create the `space resource` using the remote KC data
+		spaceResource := &space.Resource{
+			ResourceID:   kcSpaceResource.ResourceID,
+			PolicyID:     kcSpaceResource.PolicyID,
+			PermissionID: kcSpaceResource.PermissionID,
+			SpaceID:      spaceID,
+		}
+		_, err = appl.SpaceResources().Create(ctx, spaceResource)
+		return err
+	})
+	if err != nil {
+		contextutils.AbortWithError(ctx, err)
+		return
+	}
+
+	// convert the business-domain 'space' into a jsonapi-model space
+	result := model.Space{
+		ID:          createdSpace.ID.String(),
+		Name:        createdSpace.Name,
+		Description: createdSpace.Description,
+		BackLogSize: 10,
+	}
+
+	// marshall the result into a JSON-API compliant response
+	ctx.Status(http.StatusCreated)
+	ctx.Header("Content-Type", jsonapi.MediaType)
+	location := rest.AbsoluteURL(ctx.Request, fmt.Sprintf("%[1]s/api/spaces/%[2]s", r.config.GetAPIServiceURL(), createdSpace.ID.String()))
+	ctx.Header("Location", location)
+	if err := jsonapi.MarshalPayload(ctx.Writer, &result); err != nil {
+		ctx.AbortWithError(http.StatusInternalServerError, errs.Wrapf(err, "error while writing response after creating space with id '%s'", spaceID.String()))
 	}
 }
 
@@ -55,7 +195,7 @@ func (r SpacesResource) GetByID(ctx *gin.Context) {
 		BackLogSize: 10,
 	}
 
-	// marshall the result into a JSON-API compliant doc
+	// marshall the result into a JSON-API compliant response
 	ctx.Status(http.StatusOK)
 	ctx.Header("Content-Type", jsonapi.MediaType)
 	if err := jsonapi.MarshalPayload(ctx.Writer, &result); err != nil {

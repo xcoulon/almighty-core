@@ -31,10 +31,12 @@ var _ = Describe("WorkItems", func() {
 
 	s := WorkItemsResourceTestSuite{GinkgoTestSuite: gormtestsupport.NewGinkgoTestSuite("../../config.yaml")}
 
-	BeforeSuite(func() {
+	BeforeEach(func() {
 		s.Setup()
 		// also, create a testing space for all operations
-		spaceOwnerIdentity := createOneRandomUserIdentity(context.Background(), s.DB)
+		var err error
+		spaceOwnerIdentity, _, _, err := s.GenerateTestUserIdentityAndToken(s.Configuration.GetKeycloakTestUserName(), s.Configuration.GetKeycloakTestUserSecret())
+		require.Nil(GinkgoT(), err)
 		spaceRepo := space.NewRepository(s.DB)
 		testSpace, err := spaceRepo.Create(context.Background(), &space.Space{
 			Name:        "test-" + uuid.NewV4().String(),
@@ -43,18 +45,12 @@ var _ = Describe("WorkItems", func() {
 		})
 		require.Nil(GinkgoT(), err)
 		s.space = *testSpace
-	})
-
-	AfterSuite(func() {
-		s.TearDown()
-	})
-
-	BeforeEach(func() {
 		s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	})
 
 	AfterEach(func() {
 		// s.clean()
+		s.TearDown()
 	})
 
 	Describe("Test WorkItems", func() {
@@ -62,7 +58,7 @@ var _ = Describe("WorkItems", func() {
 
 			Specify("Create WorkItem OK", func() {
 				// given
-				testIdentity := createOneRandomUserIdentity(context.Background(), s.DB)
+				testIdentity := createOneRandomUserIdentity(context.Background(), s.DB, s.Configuration.GetKeycloakTestUserName())
 				title := "A title"
 				description := "A description"
 				state := workitem.SystemStateNew
@@ -78,7 +74,7 @@ var _ = Describe("WorkItems", func() {
 				err := jsonapi.MarshalPayload(payload, &wi)
 				require.Nil(GinkgoT(), err)
 				r, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/spaces/%[1]s/workitems", s.space.ID.String()), payload)
-				r.Header.Set("Authorization", "Bearer "+makeTokenString("HS256", testIdentity.ID.String(), nil))
+				r.Header.Set("Authorization", "Bearer "+makeTokenString("RS256", testIdentity.ID.String(), nil))
 				// when
 				rr := Execute(s.GinkgoTestSuite, r)
 				// then
@@ -148,8 +144,8 @@ var _ = Describe("WorkItems", func() {
 
 			BeforeEach(func() {
 				// given
-				workitemCreatorIdentity = createOneRandomUserIdentity(context.Background(), s.DB)
-				spaceEditorIdentity = createOneRandomUserIdentity(context.Background(), s.DB)
+				workitemCreatorIdentity = createOneRandomUserIdentity(context.Background(), s.DB, s.Configuration.GetKeycloakTestUserName())
+				spaceEditorIdentity = createOneRandomUserIdentity(context.Background(), s.DB, s.Configuration.GetKeycloakTestUser2Name())
 				// create a bunch a work items
 				workitemRepo := workitem.NewWorkItemRepository(s.DB)
 				wiFields := map[string]interface{}{
@@ -235,7 +231,7 @@ var _ = Describe("WorkItems", func() {
 			BeforeEach(func() {
 				GinkgoT().Log("creating a set of work items to test the updates...")
 				// given
-				testIdentity = createOneRandomUserIdentity(context.Background(), s.DB)
+				testIdentity = createOneRandomUserIdentity(context.Background(), s.DB, s.Configuration.GetKeycloakTestUserName())
 				// create a bunch a work items
 				workitemRepo := workitem.NewWorkItemRepository(s.DB)
 				for i := 0; i < 10; i++ {
@@ -269,7 +265,7 @@ var _ = Describe("WorkItems", func() {
 
 			BeforeEach(func() {
 				// given
-				testIdentity = createOneRandomUserIdentity(context.Background(), s.DB)
+				testIdentity = createOneRandomUserIdentity(context.Background(), s.DB, s.Configuration.GetKeycloakTestUserName())
 				// create a bunch a work items
 				workitemRepo := workitem.NewWorkItemRepository(s.DB)
 				wiFields := map[string]interface{}{

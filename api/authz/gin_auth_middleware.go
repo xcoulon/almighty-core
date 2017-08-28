@@ -1,41 +1,49 @@
 package authz
 
 import (
+	"crypto/rsa"
 	"strconv"
 	"time"
 
 	"github.com/google/jsonapi"
 	uuid "github.com/satori/go.uuid"
 	// jwt "github.com/dgrijalva/jwt-go"
-	ginjwt "github.com/appleboy/gin-jwt"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/gin-gonic/gin"
 	errs "github.com/pkg/errors"
-	jwt "gopkg.in/dgrijalva/jwt-go.v3"
+	ginjwt "github.com/xcoulon/gin-jwt"
+	"gopkg.in/dgrijalva/jwt-go.v3"
 )
 
-//SigningKey the key for signing and verifying the JWT
+//SigningKey the key for signing the JWT
 var SigningKey []byte
 
+//VerifyKey the key for verifying the JWT
+var VerifyKey *rsa.PublicKey
+
 func init() {
-	config := configuration.Get()
-	SigningKey = config.GetTokenPrivateKey()
+	// SigningKey = configuration.Get().GetTokenPrivateKey()
+	var err error
+	VerifyKey, err = configuration.Get().GetTokenPublicKey()
+	if err != nil {
+		log.Panic(nil, nil, "Unable to load public key: ", err.Error())
+	}
 }
 
 // NewJWTAuthMiddleware initialises the JWT auth middleware
 func NewJWTAuthMiddleware(db application.DB) *ginjwt.GinJWTMiddleware {
 	config := configuration.Get()
-
 	return &ginjwt.GinJWTMiddleware{
-		Realm:      config.GetKeycloakRealm(),
-		Key:        SigningKey, // will switch to public/private key once RSA256 is supported
+		Realm: config.GetKeycloakRealm(),
+		// SignKey:    SigningKey, // will switch to public/private key once RSA256 is supported
+		VerifyKey:  VerifyKey, // will switch to public/private key once RSA256 is supported
 		Timeout:    time.Hour,
 		MaxRefresh: time.Hour,
 		// signing algorithm - possible values are HS256, HS384, HS512
 		// asymetric algorithms not supported yet. See https://github.com/appleboy/gin-jwt/pull/80
-		SigningAlgorithm: "HS256",
+		SigningAlgorithm: "RS256",
 		IdentityHandler:  NewIdentityHandler(),
 		Authorizator:     NewAuthorizationHandler(db),
 		// Callback function that will be called during login.
@@ -87,13 +95,13 @@ func NewIdentityHandler() func(jwt.MapClaims) string {
 // This handler checks that the given userID corresponds to a valid identity in the DB.
 func NewAuthorizationHandler(db application.DB) func(string, *gin.Context) bool {
 	return func(userID string, ctx *gin.Context) bool {
-		log.Debug(ctx, map[string]interface{}{"userID": userID}, "authenticating user...")
+		log.Info(ctx, map[string]interface{}{"userID": userID}, "authenticating user...")
 		err := db.Identities().CheckExists(ctx, userID)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{"userID": userID}, "user NOT authorized")
 			return false
 		}
-		log.Debug(ctx, map[string]interface{}{"userID": userID}, "user authorized")
+		log.Info(ctx, map[string]interface{}{"userID": userID}, "user authorized")
 		ctx.Set(USER_ID, userID)
 		return true
 	}
@@ -129,7 +137,7 @@ func NewPayloadFunc() func(userID string) map[string]interface{} {
 //NewUnauthorizedHandler initializes the unauthorized handler of the JWT Auth middleware
 func NewUnauthorizedHandler() func(*gin.Context, int, string) {
 	return func(ctx *gin.Context, status int, message string) {
-		log.Info(ctx, nil, "user not unauthorized")
+		log.Info(ctx, map[string]interface{}{"status": status, "message": message}, "user not unauthorized")
 		ctx.Status(status)
 		ctx.Header("Content-Type", jsonapi.MediaType)
 		jsonapi.MarshalErrors(ctx.Writer, []*jsonapi.ErrorObject{{

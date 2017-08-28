@@ -247,10 +247,7 @@ func TestGetTokenPublicKeyFromConfigFile(t *testing.T) {
 
 	// env variable is now unset for sure, this will lead to the test looking up for
 	// value in config.yaml
-	viperValue := config.GetTokenPublicKey()
-	assert.NotNil(t, viperValue)
-
-	parsedKey, err := jwt.ParseRSAPublicKeyFromPEM(viperValue)
+	parsedKey, err := config.GetTokenPublicKey()
 	require.Nil(t, err)
 	assert.NotNil(t, parsedKey)
 }

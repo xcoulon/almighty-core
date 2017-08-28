@@ -1,19 +1,32 @@
 package gormtestsupport
 
 import (
+	"net/http"
+	"net/url"
 	"os"
-
-	config "github.com/fabric8-services/fabric8-wit/configuration"
-	"github.com/fabric8-services/fabric8-wit/gormsupport"
-	"github.com/fabric8-services/fabric8-wit/log"
-	"github.com/fabric8-services/fabric8-wit/migration"
-	"github.com/fabric8-services/fabric8-wit/resource"
-	"github.com/fabric8-services/fabric8-wit/workitem"
+	"time"
 
 	"context"
 
+	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/auth"
+	config "github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/errors"
+	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	"github.com/fabric8-services/fabric8-wit/gormsupport"
+	"github.com/fabric8-services/fabric8-wit/log"
+	"github.com/fabric8-services/fabric8-wit/login"
+	"github.com/fabric8-services/fabric8-wit/migration"
+	"github.com/fabric8-services/fabric8-wit/resource"
+	"github.com/fabric8-services/fabric8-wit/token"
+	"github.com/fabric8-services/fabric8-wit/workitem"
+	. "github.com/onsi/ginkgo"
+	errs "github.com/pkg/errors"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq" // need to import postgres driver
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -30,6 +43,7 @@ type GinkgoTestSuite struct {
 	configFile    string
 	Configuration *config.ConfigurationData
 	DB            *gorm.DB
+	auth          login.KeycloakOAuthService
 }
 
 // Setup initializes the DB connection
@@ -51,6 +65,17 @@ func (s *GinkgoTestSuite) Setup() {
 			}, "failed to connect to the database")
 		}
 	}
+	identityRepository := account.NewIdentityRepository(s.DB)
+	userRepository := account.NewUserRepository(s.DB)
+	appDB := gormapplication.NewGormDB(s.DB)
+	publicKey, err := s.Configuration.GetTokenPublicKey()
+	if err != nil {
+		log.Panic(nil, map[string]interface{}{
+			"err": err,
+		}, "failed to parse public token")
+	}
+	tokenManager := token.NewManager(publicKey)
+	s.auth = login.NewKeycloakOAuthProvider(identityRepository, userRepository, tokenManager, appDB)
 }
 
 // PopulateGinkgoTestSuite populates the DB with common values
@@ -91,4 +116,72 @@ func (s *GinkgoTestSuite) DisableGormCallbacks() func() {
 		s.DB.Callback().Create().Register(gormCallbackName, oldCreateCallback)
 		s.DB.Callback().Update().Register(gormCallbackName, oldUpdateCallback)
 	}
+}
+
+// GenerateTestUserIdentityAndToken calls the KC instance to retrieve the token for the given username and secret and generates the user/identity records in the DB
+func (s *GinkgoTestSuite) GenerateTestUserIdentityAndToken(username, userSecret string) (*account.Identity, *account.User, *string, error) {
+	tokenEndpoint, err := s.Configuration.GetKeycloakEndpointToken(&http.Request{Host: "api.example.org"})
+	if err != nil {
+		log.Error(nil, map[string]interface{}{
+			"err": err,
+		}, "unable to get Keycloak token endpoint URL")
+		return nil, nil, nil, errs.Wrap(err, "unable to get Keycloak token endpoint URL")
+	}
+	log.Warn(nil, map[string]interface{}{"tokenEndpoint": tokenEndpoint}, "Retrieved token Endpoint")
+
+	accessToken, err := s.generateAccessToken(tokenEndpoint, username, userSecret)
+	if err != nil {
+		log.Error(nil, map[string]interface{}{
+			"err":      err,
+			"username": username,
+		}, "unable to get Generate User token")
+		return nil, nil, nil, errs.Wrap(err, "unable to generate test token ")
+	}
+
+	// Creates the testuser user and identity if they don't yet exist
+	profileEndpoint, err := s.Configuration.GetKeycloakAccountEndpoint(&http.Request{Host: "api.example.org"})
+	if err != nil {
+		log.Error(nil, map[string]interface{}{
+			"err": err,
+		}, "unable to get Keycloak account endpoint URL")
+		return nil, nil, nil, err
+	}
+	identity, user, err := s.auth.CreateOrUpdateKeycloakUser(*accessToken, context.Background(), profileEndpoint)
+	if err != nil {
+		log.Error(nil, map[string]interface{}{
+			"err": err,
+		}, "unable to create or update keycloak user and identity")
+		return nil, nil, nil, err
+	}
+	return identity, user, accessToken, nil
+}
+
+func (s *GinkgoTestSuite) generateAccessToken(tokenEndpoint, username, userSecret string) (*string, error) {
+	client := &http.Client{Timeout: 10 * time.Second}
+	res, err := client.PostForm(tokenEndpoint, url.Values{
+		"client_id":     {s.Configuration.GetKeycloakClientID()},
+		"client_secret": {s.Configuration.GetKeycloakSecret()},
+		"username":      {username},
+		"password":      {userSecret},
+		"grant_type":    {"password"},
+	})
+	if err != nil {
+		return nil, errors.NewInternalError(context.Background(), errs.Wrap(err, "error when obtaining token"))
+	}
+	token, err := auth.ReadToken(context.Background(), res)
+	require.Nil(GinkgoT(), err)
+	accessToken := token.AccessToken
+	log.Debug(nil, nil, "Token: %s", *accessToken)
+	_, err = jwt.Parse(*accessToken, func(t *jwt.Token) (interface{}, error) {
+		return s.Configuration.GetTokenPublicKey()
+	})
+	if err != nil {
+		log.Error(nil, map[string]interface{}{
+			"err": err,
+		}, "unable to parse access token after we got it")
+		return nil, err
+	}
+
+	log.Info(nil, nil, "access token retrieved and validated :)")
+	return accessToken, nil
 }
