@@ -8,13 +8,14 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/api"
-	. "github.com/fabric8-services/fabric8-wit/api/handler"
+	"github.com/fabric8-services/fabric8-wit/api/authz"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	. "github.com/onsi/ginkgo"
+	uuid "github.com/satori/go.uuid"
 )
 
-func makeTokenString(SigningAlgorithm string, identity string) string {
+func makeTokenString(SigningAlgorithm string, identity string, editableSpaces []uuid.UUID) string {
 	if SigningAlgorithm == "" {
 		SigningAlgorithm = "HS256"
 	}
@@ -23,10 +24,10 @@ func makeTokenString(SigningAlgorithm string, identity string) string {
 	claims["sub"] = identity // subject
 	claims["exp"] = time.Now().Add(time.Hour).Unix()
 	claims["orig_iat"] = time.Now().Unix()
-	// config := configuration.Get()
+
 	tss, _ := token.SigningString()
 	fmt.Printf("Submitted signing string: '%v'\n", tss)
-	tokenString, _ := token.SignedString(SigningKey)
+	tokenString, _ := token.SignedString(authz.SigningKey)
 	return tokenString
 }
 

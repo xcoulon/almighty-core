@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/fabric8-services/fabric8-wit/api/authz"
+	contextutils "github.com/fabric8-services/fabric8-wit/api/context_utils"
 	"github.com/fabric8-services/fabric8-wit/api/model"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -130,13 +132,13 @@ func (ctx *WorkItemsResourceListContext) NotModified() error {
 func (r WorkItemsResource) List(ctx *gin.Context) {
 	listCtx, err := NewWorkItemsResourceListContext(ctx)
 	if err != nil {
-		abortWithError(ctx, err)
+		contextutils.AbortWithError(ctx, err)
 		return
 	}
 	var additionalQuery []string
 	exp, err := query.Parse(listCtx.Filter)
 	if err != nil {
-		abortWithError(ctx, errors.NewBadParameterError("filter", err))
+		contextutils.AbortWithError(ctx, errors.NewBadParameterError("filter", err))
 		return
 	}
 	if listCtx.ExpressionFilter != nil {
@@ -164,13 +166,13 @@ func (r WorkItemsResource) List(ctx *gin.Context) {
 		additionalQuery = append(additionalQuery, "filter[iteration]="+*listCtx.IterationFilter)
 		// Update filter by adding child iterations if any
 		application.Transactional(r.db, func(tx application.Application) error {
-			iterationUUID, errConversion := uuid.FromString(*listCtx.IterationFilter)
-			if errConversion != nil {
-				ctx.AbortWithError(http.StatusBadRequest, errors.NewBadParameterError("iterationID", errConversion))
+			iterationUUID, err := uuid.FromString(*listCtx.IterationFilter)
+			if err != nil {
+				contextutils.AbortWithError(ctx, errors.NewBadParameterError("iterationID", err))
 			}
 			childrens, err := tx.Iterations().LoadChildren(ctx, iterationUUID)
 			if err != nil {
-				ctx.AbortWithError(http.StatusBadRequest, err)
+				contextutils.AbortWithError(ctx, errors.NewInternalError(ctx, err))
 			}
 			for _, child := range childrens {
 				childIDStr := child.ID.String()
@@ -199,7 +201,7 @@ func (r WorkItemsResource) List(ctx *gin.Context) {
 	}
 	workitems, totalCount, err := r.db.WorkItems().List(ctx, listCtx.SpaceID, exp, listCtx.ParentExistsFilter, listCtx.PageOffset, listCtx.PageLimit)
 	if err != nil {
-		abortWithError(ctx, err)
+		contextutils.AbortWithError(ctx, err)
 	}
 	listCtx.ConditionalEntities(workitems, r.config.GetCacheControlWorkItems, func() {
 		// hasChildren := workItemIncludeHasChildren(tx, ctx)
@@ -212,7 +214,7 @@ func (r WorkItemsResource) List(ctx *gin.Context) {
 		p, err := jsonapi.Marshal(items)
 		payload, ok := p.(*jsonapi.ManyPayload)
 		if !ok {
-			abortWithError(ctx, err)
+			contextutils.AbortWithError(ctx, err)
 		}
 		payload.Meta = &jsonapi.Meta{
 			"total-count": totalCount,
@@ -253,13 +255,13 @@ func NewWorkItemsResourceShowContext(ctx *gin.Context) (*WorkItemsResourceShowCo
 func (r WorkItemsResource) Show(ctx *gin.Context) {
 	showCtx, err := NewWorkItemsResourceShowContext(ctx)
 	if err != nil {
-		abortWithError(ctx, err)
+		contextutils.AbortWithError(ctx, err)
 		return
 	}
 	wi, err := r.db.WorkItems().LoadByID(ctx, showCtx.WorkitemID)
 	if err != nil {
 		log.Warn(ctx, nil, "Aborting with error: %s", err.Error())
-		abortWithError(ctx, err)
+		contextutils.AbortWithError(ctx, err)
 		return
 	}
 	result := model.ConvertWorkItemToModel(*wi)
@@ -299,7 +301,7 @@ func NewWorkItemsResourceCreateContext(ctx *gin.Context) (*WorkItemsResourceCrea
 func (r WorkItemsResource) Create(ctx *gin.Context) {
 	createCtx, err := NewWorkItemsResourceCreateContext(ctx)
 	if err != nil {
-		abortWithError(ctx, err)
+		contextutils.AbortWithError(ctx, err)
 		return
 	}
 	payloadWI := createCtx.WorkItem
@@ -309,17 +311,17 @@ func (r WorkItemsResource) Create(ctx *gin.Context) {
 	fields[workitem.SystemDescription] = payloadDescription
 	fields[workitem.SystemState] = *payloadWI.State
 	if createCtx.WorkItem.Type == nil {
-		abortWithError(ctx, errors.NewBadParameterError("type", err))
+		contextutils.AbortWithError(ctx, errors.NewBadParameterError("type", err))
 	}
 	wiType, err := uuid.FromString(createCtx.WorkItem.Type.ID)
 	if err != nil {
-		abortWithError(ctx, errors.NewBadParameterError("type", err))
+		contextutils.AbortWithError(ctx, errors.NewBadParameterError("type", err))
 	}
 	// creatorID, _ := uuid.FromString("e1e9b60a-0c8d-4450-83d3-b2dc44a8bc1c")
-	creatorID, _ := GetUserID(ctx)
+	creatorID, _ := authz.GetUserID(ctx)
 	createdWI, err := r.db.WorkItems().Create(ctx, createCtx.SpaceID, wiType, fields, *creatorID)
 	if err != nil {
-		abortWithError(ctx, err)
+		contextutils.AbortWithError(ctx, err)
 		return
 	}
 	config := configuration.Get()
@@ -361,13 +363,13 @@ func NewWorkItemsResourceUpdateContext(ctx *gin.Context) (*WorkItemsResourceUpda
 func (r WorkItemsResource) Update(ctx *gin.Context) {
 	updateCtx, err := NewWorkItemsResourceUpdateContext(ctx)
 	if err != nil {
-		abortWithError(ctx, err)
+		contextutils.AbortWithError(ctx, err)
 		return
 	}
-	currentUserID, _ := GetUserID(ctx)
+	currentUserID, _ := authz.GetUserID(ctx)
 	wi, err := r.db.WorkItems().LoadByID(ctx, updateCtx.WorkItemID)
 	if err != nil {
-		abortWithError(ctx, err)
+		contextutils.AbortWithError(ctx, err)
 		return
 	}
 	err = application.Transactional(r.db, func(appl application.Application) error {
@@ -380,7 +382,7 @@ func (r WorkItemsResource) Update(ctx *gin.Context) {
 		wi.Type = oldType
 		wi, err = r.db.WorkItems().Save(ctx, wi.SpaceID, *wi, *currentUserID)
 		if err != nil {
-			abortWithError(ctx, err)
+			contextutils.AbortWithError(ctx, err)
 			return err
 		}
 

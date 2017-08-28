@@ -2,20 +2,23 @@ package authz
 
 import (
 	"context"
+	"fmt"
+	"reflect"
 
-	jwt "github.com/dgrijalva/jwt-go"
 	contextutils "github.com/fabric8-services/fabric8-wit/api/context_utils"
 	"github.com/fabric8-services/fabric8-wit/auth"
+	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/gin-gonic/gin"
 	uuid "github.com/satori/go.uuid"
+	jwt "gopkg.in/dgrijalva/jwt-go.v3"
 )
 
 //NewWorkItemEditorAuthorizator returns a new handler that checks if the current user is allowed to edit the work item
-func NewWorkItemEditorAuthorizator(appDB *gormapplication.GormDB, entitlementEndpoint string) gin.HandlerFunc {
+func NewWorkItemEditorAuthorizator(appDB *gormapplication.GormDB, config *configuration.ConfigurationData) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		workitemID, err := uuid.FromString(ctx.Param("workitemID")) // the workitem ID param
 		if err != nil {
@@ -36,6 +39,11 @@ func NewWorkItemEditorAuthorizator(appDB *gormapplication.GormDB, entitlementEnd
 			contextutils.AbortWithError(ctx, errors.NewBadParameterError("workitem.SystemCreator", nil))
 		}
 		log.Debug(ctx, map[string]interface{}{"wi": wi, "creator": creator, "current_user": currentUserID}, "Authorizing work item update...")
+		entitlementEndpoint, err := config.GetKeycloakEndpointEntitlement(ctx.Request)
+		if err != nil {
+			contextutils.AbortWithError(ctx, errors.NewInternalError(ctx, err))
+		}
+
 		authorized, err := authorizeWorkitemEditor(ctx, appDB, entitlementEndpoint, wi.SpaceID, creator.(string), currentUserID.String())
 		if err != nil {
 			contextutils.AbortWithError(ctx, err)
@@ -52,13 +60,15 @@ func authorizeWorkitemEditor(ctx *gin.Context, appDB *gormapplication.GormDB, en
 	if editorID == creatorID {
 		return true, nil
 	}
-	tokenPayload, ok := ctx.Get("JWT_PAYLOAD")
-	if !ok {
+	tokenPayload, found := ctx.Get("JWT_PAYLOAD")
+	if !found {
 		return false, errors.NewUnauthorizedError("missing token")
 	}
-	claims, ok := tokenPayload.(jwt.MapClaims)
-	if !ok {
-		return false, errors.NewUnauthorizedError("invalid token claims type")
+	log.Info(ctx, nil, "token claims type: %+v", reflect.TypeOf(tokenPayload))
+	log.Info(ctx, nil, "token claims: %+v", tokenPayload)
+	claims, isMapClaims := tokenPayload.(jwt.MapClaims)
+	if !isMapClaims {
+		return false, errors.NewUnauthorizedError(fmt.Sprintf("invalid token claims type: %+v", reflect.TypeOf(tokenPayload)))
 	}
 
 	// jwttoken := goajwt.ContextJWT(ctx)

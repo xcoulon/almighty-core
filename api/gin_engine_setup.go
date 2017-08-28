@@ -1,11 +1,11 @@
 package api
 
 import (
+	"github.com/fabric8-services/fabric8-wit/api/authz"
 	"github.com/fabric8-services/fabric8-wit/api/handler"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/notification"
-	"github.com/fabric8-services/fabric8-wit/space/authz"
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,7 +15,7 @@ func NewGinEngine(appDB *gormapplication.GormDB, notificationChannel notificatio
 	httpEngine.GET("/ping", func(c *gin.Context) {
 		c.String(200, "pong")
 	})
-	authMiddleware := handler.NewJWTAuthMiddleware(appDB)
+	authMiddleware := authz.NewJWTAuthMiddleware(appDB)
 	spacesResource := handler.NewSpacesResource(appDB, config)
 	workitemsResource := handler.NewWorkItemsResource(appDB, notificationChannel, config)
 	httpEngine.GET("/api/spaces", spacesResource.List)
@@ -23,12 +23,13 @@ func NewGinEngine(appDB *gormapplication.GormDB, notificationChannel notificatio
 	httpEngine.GET("/api/spaces/:spaceID/workitems", workitemsResource.List)
 	httpEngine.GET("/api/workitems/:workitemID", workitemsResource.Show)
 	// secured endpoints
-	spaceAuthzService := authz.NewAuthzService(config, appDB)
 	authGroup := httpEngine.Group("/")
 	authGroup.Use(authMiddleware.MiddlewareFunc())
-	authGroup.Use(authz.AuthzServiceHandler(spaceAuthzService))
+	// spaceAuthzService := authz.NewAuthzService(config, appDB)
+	// authGroup.Use(authz.AuthzServiceManager(spaceAuthzService))
 	authGroup.GET("/refresh_token", authMiddleware.RefreshHandler)
 	authGroup.POST("/api/spaces/:spaceID/workitems", workitemsResource.Create)
-	authGroup.PATCH("/api/workitems/:workitemID", authz.NewWorkItemEditorAuthorizator(appDB), workitemsResource.Update)
+
+	authGroup.PATCH("/api/workitems/:workitemID", authz.NewWorkItemEditorAuthorizator(appDB, config), workitemsResource.Update)
 	return httpEngine
 }

@@ -54,7 +54,7 @@ var _ = Describe("WorkItems", func() {
 	})
 
 	AfterEach(func() {
-		s.clean()
+		// s.clean()
 	})
 
 	Describe("Test WorkItems", func() {
@@ -78,7 +78,7 @@ var _ = Describe("WorkItems", func() {
 				err := jsonapi.MarshalPayload(payload, &wi)
 				require.Nil(GinkgoT(), err)
 				r, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/spaces/%[1]s/workitems", s.space.ID.String()), payload)
-				r.Header.Set("Authorization", "Bearer "+makeTokenString("HS256", testIdentity.ID.String()))
+				r.Header.Set("Authorization", "Bearer "+makeTokenString("HS256", testIdentity.ID.String(), nil))
 				// when
 				rr := Execute(s.GinkgoTestSuite, r)
 				// then
@@ -132,7 +132,7 @@ var _ = Describe("WorkItems", func() {
 				require.Nil(GinkgoT(), err)
 				r, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/spaces/%[1]s/workitems", s.space.ID.String()), payload)
 				// generate/sign an auth token
-				r.Header.Set("Authorization", "Bearer "+makeTokenString("HS256", "foo"))
+				r.Header.Set("Authorization", "Bearer "+makeTokenString("HS256", "foo", nil))
 				// when
 				rr := Execute(s.GinkgoTestSuite, r)
 				// then
@@ -142,12 +142,14 @@ var _ = Describe("WorkItems", func() {
 
 		Context("Update WorkItem", func() {
 
-			var testIdentity *account.Identity
+			var workitemCreatorIdentity *account.Identity
+			var spaceEditorIdentity *account.Identity
 			var createdWorkItem workitem.WorkItem
 
 			BeforeEach(func() {
 				// given
-				testIdentity = createOneRandomUserIdentity(context.Background(), s.DB)
+				workitemCreatorIdentity = createOneRandomUserIdentity(context.Background(), s.DB)
+				spaceEditorIdentity = createOneRandomUserIdentity(context.Background(), s.DB)
 				// create a bunch a work items
 				workitemRepo := workitem.NewWorkItemRepository(s.DB)
 				wiFields := map[string]interface{}{
@@ -157,12 +159,13 @@ var _ = Describe("WorkItems", func() {
 					},
 					workitem.SystemState: workitem.SystemStateNew,
 				}
-				createdWI, err := workitemRepo.Create(context.Background(), s.space.ID, workitem.SystemBug, wiFields, s.space.OwnerId)
+				createdWI, err := workitemRepo.Create(context.Background(), s.space.ID, workitem.SystemBug, wiFields, workitemCreatorIdentity.ID)
 				require.Nil(GinkgoT(), err)
 				createdWorkItem = *createdWI
+				GinkgoT().Logf("Created work item with id='%s' in space '%s'", createdWorkItem.ID.String(), createdWorkItem.SpaceID.String())
 			})
 
-			Specify("Update WorkItem OK", func() {
+			Specify("Update WorkItem OK - work item creator", func() {
 				// given
 				payloadWI := model.ConvertWorkItemToModel(createdWorkItem)
 				updatedTitle := "Updated title"
@@ -171,7 +174,29 @@ var _ = Describe("WorkItems", func() {
 				err := jsonapi.MarshalPayload(payload, payloadWI)
 				require.Nil(GinkgoT(), err)
 				r, _ := http.NewRequest(http.MethodPatch, fmt.Sprintf("/api/workitems/%[1]s", createdWorkItem.ID.String()), payload)
-				r.Header.Set("Authorization", "Bearer "+makeTokenString("HS256", testIdentity.ID.String()))
+				r.Header.Set("Authorization", "Bearer "+makeTokenString("HS256", workitemCreatorIdentity.ID.String(), nil))
+				// when
+				rr := Execute(s.GinkgoTestSuite, r)
+				// then
+				assert.Equal(GinkgoT(), http.StatusOK, rr.Code)
+				responseItem := model.WorkItem{}
+				GinkgoT().Logf("Response body:\n%s", rr.Body.String())
+				err = jsonapi.UnmarshalPayload(rr.Body, &responseItem)
+				require.Nil(GinkgoT(), err)
+				assert.NotNil(GinkgoT(), responseItem.ID)
+				assert.Equal(GinkgoT(), "Updated title", *responseItem.Title)
+			})
+
+			Specify("Update WorkItem OK - space editor", func() {
+				// given
+				payloadWI := model.ConvertWorkItemToModel(createdWorkItem)
+				updatedTitle := "Updated title"
+				payloadWI.Title = &updatedTitle
+				payload := bytes.NewBuffer(make([]byte, 0))
+				err := jsonapi.MarshalPayload(payload, payloadWI)
+				require.Nil(GinkgoT(), err)
+				r, _ := http.NewRequest(http.MethodPatch, fmt.Sprintf("/api/workitems/%[1]s", createdWorkItem.ID.String()), payload)
+				r.Header.Set("Authorization", "Bearer "+makeTokenString("HS256", spaceEditorIdentity.ID.String(), nil))
 				// when
 				rr := Execute(s.GinkgoTestSuite, r)
 				// then
@@ -194,7 +219,7 @@ var _ = Describe("WorkItems", func() {
 				require.Nil(GinkgoT(), err)
 				r, _ := http.NewRequest(http.MethodPatch, fmt.Sprintf("/api/workitems/%[1]s", createdWorkItem.ID.String()), payload)
 				// generate an invalid auth token
-				r.Header.Set("Authorization", "Bearer "+makeTokenString("HS256", "foo"))
+				r.Header.Set("Authorization", "Bearer "+makeTokenString("HS256", "foo", nil))
 				// when
 				rr := Execute(s.GinkgoTestSuite, r)
 				// then

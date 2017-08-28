@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	contextutils "github.com/fabric8-services/fabric8-wit/api/context_utils"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/google/jsonapi"
@@ -20,12 +21,12 @@ func OK(ctx *gin.Context, result interface{}) error {
 	case jsonapi.ManyPayload:
 		ctx.Header("Content-Type", jsonapi.MediaType)
 		if err := json.NewEncoder(ctx.Writer).Encode(result); err != nil {
-			abortWithError(ctx, err)
+			contextutils.AbortWithError(ctx, err)
 			return err
 		}
 	default:
 		if err := jsonapi.MarshalPayload(ctx.Writer, result); err != nil {
-			abortWithError(ctx, err)
+			contextutils.AbortWithError(ctx, err)
 			return err
 		}
 	}
@@ -44,7 +45,7 @@ func Created(ctx *gin.Context, result interface{}, location string) {
 	ctx.Header("Content-Type", jsonapi.MediaType)
 	ctx.Header("Location", location)
 	if err := jsonapi.MarshalPayload(ctx.Writer, result); err != nil {
-		abortWithError(ctx, err)
+		contextutils.AbortWithError(ctx, err)
 	}
 }
 

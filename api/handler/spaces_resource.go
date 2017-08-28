@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	contextutils "github.com/fabric8-services/fabric8-wit/api/context_utils"
 	"github.com/fabric8-services/fabric8-wit/api/model"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/login"
@@ -38,13 +39,13 @@ func NewSpacesResource(db application.DB, config SpacesResourceConfiguration) Sp
 func (r SpacesResource) GetByID(ctx *gin.Context) {
 	spaceID, err := uuid.FromString(ctx.Param("spaceID"))
 	if err != nil {
-		abortWithError(ctx, errs.Wrapf(err, "the space ID is not a valid UUID"))
+		contextutils.AbortWithError(ctx, errs.Wrapf(err, "the space ID is not a valid UUID"))
 		return
 	}
 	s, err := r.db.Spaces().Load(ctx, spaceID)
 	if err != nil {
 		//TODO: retrieve the correct HTTP status for the given err
-		abortWithError(ctx, errs.Wrapf(err, "error while fetching the space with id=%s", spaceID.String()))
+		contextutils.AbortWithError(ctx, errs.Wrapf(err, "error while fetching the space with id=%s", spaceID.String()))
 	}
 	// convert the business-domain 'space' into a jsonapi-model space
 	result := model.Space{
