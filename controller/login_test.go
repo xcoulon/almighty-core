@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"fmt"
 	"testing"
 
 	"context"
@@ -45,11 +44,7 @@ func TestRunLoginREST(t *testing.T) {
 func (rest *TestLoginREST) SetupTest() {
 	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
-	c, err := configuration.GetConfigurationData()
-	if err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
-	rest.configuration = c
+	rest.configuration = configuration.Get()
 	rest.loginService = rest.newTestKeycloakOAuthProvider(rest.db)
 }
 

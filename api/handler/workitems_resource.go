@@ -10,13 +10,13 @@ import (
 	"github.com/fabric8-services/fabric8-wit/api/model"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
-	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/criteria"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/log"
 	"github.com/fabric8-services/fabric8-wit/notification"
 	query "github.com/fabric8-services/fabric8-wit/query/simple"
 	"github.com/fabric8-services/fabric8-wit/rendering"
+	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/search"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/gin-gonic/gin"
@@ -324,8 +324,7 @@ func (r WorkItemsResource) Create(ctx *gin.Context) {
 		contextutils.AbortWithError(ctx, err)
 		return
 	}
-	config := configuration.Get()
-	location := fmt.Sprintf("%[1]s/api/workitems/%[2]s", config.GetAPIServiceURL(), createdWI.ID)
+	location := rest.AbsoluteURL(ctx.Request, fmt.Sprintf("%[1]s/api/workitems/%[2]s", r.config.GetAPIServiceURL(), createdWI.ID))
 	responseWI := model.ConvertWorkItemToModel(*createdWI)
 	createCtx.Created(responseWI, location)
 }

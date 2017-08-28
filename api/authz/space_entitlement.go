@@ -64,8 +64,6 @@ func authorizeWorkitemEditor(ctx *gin.Context, appDB *gormapplication.GormDB, en
 	if !found {
 		return false, errors.NewUnauthorizedError("missing token")
 	}
-	log.Info(ctx, nil, "token claims type: %+v", reflect.TypeOf(tokenPayload))
-	log.Info(ctx, nil, "token claims: %+v", tokenPayload)
 	claims, isMapClaims := tokenPayload.(jwt.MapClaims)
 	if !isMapClaims {
 		return false, errors.NewUnauthorizedError(fmt.Sprintf("invalid token claims type: %+v", reflect.TypeOf(tokenPayload)))

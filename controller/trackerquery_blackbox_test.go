@@ -258,10 +258,7 @@ func (rest *TestTrackerQueryREST) TestUpdateTrackerQuery() {
 		t.Errorf("Id should be %s, but is %s", tqresult.ID, tqr.ID)
 	}
 
-	reqLong := &goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}
-	spaceSelfURL := witrest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
+	spaceSelfURL := witrest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(space.SystemSpace.String()))
 	payload2 := app.UpdateTrackerQueryAlternatePayload{
 		Query:     tqr.Query,
 		Schedule:  tqr.Schedule,
@@ -334,10 +331,7 @@ func (rest *TestTrackerQueryREST) TestCreateTrackerQueryValidId() {
 }
 
 func newCreateTrackerQueryPayload(trackerID string) app.CreateTrackerQueryAlternatePayload {
-	reqLong := &goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}
-	spaceSelfURL := witrest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
+	spaceSelfURL := witrest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"}, app.SpaceHref(space.SystemSpace.String()))
 	return app.CreateTrackerQueryAlternatePayload{
 		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
 		Schedule:  "15 * * * * *",

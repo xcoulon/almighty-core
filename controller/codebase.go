@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/fabric8-services/fabric8-wit/app"
@@ -53,7 +54,7 @@ func (c *CodebaseController) Show(ctx *app.ShowCodebaseContext) error {
 		}
 
 		res := &app.CodebaseSingle{}
-		res.Data = ConvertCodebase(ctx.RequestData, c)
+		res.Data = ConvertCodebase(ctx.Request, c)
 
 		return ctx.OK(res)
 	})
@@ -90,7 +91,7 @@ func (c *CodebaseController) Edit(ctx *app.EditCodebaseContext) error {
 
 	var existingWorkspaces []*app.Workspace
 	for _, workspace := range workspaces {
-		openLink := rest.AbsoluteURL(ctx.RequestData, fmt.Sprintf(app.CodebaseHref(cb.ID)+"/open/%v", workspace.Config.Name))
+		openLink := rest.AbsoluteURL(ctx.Request, fmt.Sprintf(app.CodebaseHref(cb.ID)+"/open/%v", workspace.Config.Name))
 		existingWorkspaces = append(existingWorkspaces, &app.Workspace{
 			Attributes: &app.WorkspaceAttributes{
 				Name:        &workspace.Config.Name,
@@ -103,7 +104,7 @@ func (c *CodebaseController) Edit(ctx *app.EditCodebaseContext) error {
 		})
 	}
 
-	createLink := rest.AbsoluteURL(ctx.RequestData, app.CodebaseHref(cb.ID)+"/create")
+	createLink := rest.AbsoluteURL(ctx.Request, app.CodebaseHref(cb.ID)+"/create")
 	resp := &app.WorkspaceList{
 		Data: existingWorkspaces,
 		Links: &app.WorkspaceEditLinks{
@@ -241,10 +242,10 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 
 // CodebaseConvertFunc is a open ended function to add additional links/data/relations to a Codebase during
 // convertion from internal to API
-type CodebaseConvertFunc func(*goa.RequestData, *codebase.Codebase, *app.Codebase)
+type CodebaseConvertFunc func(*http.Request, *codebase.Codebase, *app.Codebase)
 
 // ConvertCodebases converts between internal and external REST representation
-func ConvertCodebases(request *goa.RequestData, codebases []*codebase.Codebase, additional ...CodebaseConvertFunc) []*app.Codebase {
+func ConvertCodebases(request *http.Request, codebases []*codebase.Codebase, additional ...CodebaseConvertFunc) []*app.Codebase {
 	var is = []*app.Codebase{}
 	for _, i := range codebases {
 		is = append(is, ConvertCodebase(request, i, additional...))
@@ -253,7 +254,7 @@ func ConvertCodebases(request *goa.RequestData, codebases []*codebase.Codebase, 
 }
 
 // ConvertCodebase converts between internal and external REST representation
-func ConvertCodebase(request *goa.RequestData, codebase *codebase.Codebase, additional ...CodebaseConvertFunc) *app.Codebase {
+func ConvertCodebase(request *http.Request, codebase *codebase.Codebase, additional ...CodebaseConvertFunc) *app.Codebase {
 	codebaseType := APIStringTypeCodebase
 	spaceType := APIStringTypeSpace
 

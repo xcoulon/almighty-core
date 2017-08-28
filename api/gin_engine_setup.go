@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/fabric8-services/fabric8-wit/api/authz"
 	"github.com/fabric8-services/fabric8-wit/api/handler"
+	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/notification"
@@ -16,7 +17,7 @@ func NewGinEngine(appDB *gormapplication.GormDB, notificationChannel notificatio
 		c.String(200, "pong")
 	})
 	authMiddleware := authz.NewJWTAuthMiddleware(appDB)
-	spacesResource := handler.NewSpacesResource(appDB, config)
+	spacesResource := handler.NewSpacesResource(appDB, config, auth.NewKeycloakResourceManager(config))
 	workitemsResource := handler.NewWorkItemsResource(appDB, notificationChannel, config)
 	httpEngine.GET("/api/spaces", spacesResource.List)
 	httpEngine.GET("/api/spaces/:spaceID", spacesResource.GetByID)

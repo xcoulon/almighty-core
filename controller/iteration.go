@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
@@ -99,11 +100,11 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		for _, itr := range iterations {
 			itrMap[itr.ID] = itr
 		}
-		responseData = ConvertIteration(ctx.RequestData, newItr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
+		responseData = ConvertIteration(ctx.Request, newItr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
 		res := &app.IterationSingle{
 			Data: responseData,
 		}
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.IterationHref(res.Data.ID)))
+		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.Request, app.IterationHref(res.Data.ID)))
 		return ctx.Created(res)
 	})
 }
@@ -135,7 +136,7 @@ func (c *IterationController) Show(ctx *app.ShowIterationContext) error {
 			for _, itr := range iterations {
 				itrMap[itr.ID] = itr
 			}
-			responseData = ConvertIteration(ctx.RequestData, *iter, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
+			responseData = ConvertIteration(ctx.Request, *iter, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
 			res := &app.IterationSingle{
 				Data: responseData,
 			}
@@ -211,7 +212,7 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 		for _, itr := range iterations {
 			itrMap[itr.ID] = itr
 		}
-		responseData = ConvertIteration(ctx.RequestData, *itr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
+		responseData = ConvertIteration(ctx.Request, *itr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
 		res := &app.IterationSingle{
 			Data: responseData,
 		}
@@ -221,10 +222,10 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 
 // IterationConvertFunc is a open ended function to add additional links/data/relations to a Iteration during
 // conversion from internal to API
-type IterationConvertFunc func(*goa.RequestData, *iteration.Iteration, *app.Iteration)
+type IterationConvertFunc func(*http.Request, *iteration.Iteration, *app.Iteration)
 
 // ConvertIterations converts between internal and external REST representation
-func ConvertIterations(request *goa.RequestData, Iterations []iteration.Iteration, additional ...IterationConvertFunc) []*app.Iteration {
+func ConvertIterations(request *http.Request, Iterations []iteration.Iteration, additional ...IterationConvertFunc) []*app.Iteration {
 	var is = []*app.Iteration{}
 	for _, i := range Iterations {
 		is = append(is, ConvertIteration(request, i, additional...))
@@ -233,7 +234,7 @@ func ConvertIterations(request *goa.RequestData, Iterations []iteration.Iteratio
 }
 
 // ConvertIteration converts between internal and external REST representation
-func ConvertIteration(request *goa.RequestData, itr iteration.Iteration, additional ...IterationConvertFunc) *app.Iteration {
+func ConvertIteration(request *http.Request, itr iteration.Iteration, additional ...IterationConvertFunc) *app.Iteration {
 	iterationType := iteration.APIStringTypeIteration
 	spaceID := itr.SpaceID.String()
 	relatedURL := rest.AbsoluteURL(request, app.IterationHref(itr.ID))
@@ -296,7 +297,7 @@ func ConvertIteration(request *goa.RequestData, itr iteration.Iteration, additio
 }
 
 // ConvertIterationSimple converts a simple Iteration ID into a Generic Reletionship
-func ConvertIterationSimple(request *goa.RequestData, id interface{}) *app.GenericData {
+func ConvertIterationSimple(request *http.Request, id interface{}) *app.GenericData {
 	t := iteration.APIStringTypeIteration
 	i := fmt.Sprint(id)
 	return &app.GenericData{
@@ -306,7 +307,7 @@ func ConvertIterationSimple(request *goa.RequestData, id interface{}) *app.Gener
 	}
 }
 
-func createIterationLinks(request *goa.RequestData, id interface{}) *app.GenericLinks {
+func createIterationLinks(request *http.Request, id interface{}) *app.GenericLinks {
 	relatedURL := rest.AbsoluteURL(request, app.IterationHref(id))
 	return &app.GenericLinks{
 		Self:    &relatedURL,
@@ -318,7 +319,7 @@ func createIterationLinks(request *goa.RequestData, id interface{}) *app.Generic
 type iterationIDMap map[uuid.UUID]iteration.Iteration
 
 func parentPathResolver(itrMap iterationIDMap) IterationConvertFunc {
-	return func(request *goa.RequestData, itr *iteration.Iteration, appIteration *app.Iteration) {
+	return func(request *http.Request, itr *iteration.Iteration, appIteration *app.Iteration) {
 		parentUUIDs := itr.Path
 		pathResolved := ""
 		for _, id := range parentUUIDs {
@@ -348,7 +349,7 @@ func convertToUUID(uuidStrings []string) []uuid.UUID {
 // Inner function is able to access `wiCounts` in closure and it is responsible
 // for adding 'closed' and 'total' count of WI in relationship's meta for every given iteration.
 func updateIterationsWithCounts(wiCounts map[string]workitem.WICountsPerIteration) IterationConvertFunc {
-	return func(request *goa.RequestData, itr *iteration.Iteration, appIteration *app.Iteration) {
+	return func(request *http.Request, itr *iteration.Iteration, appIteration *app.Iteration) {
 		var counts workitem.WICountsPerIteration
 		if _, ok := wiCounts[appIteration.ID.String()]; ok {
 			counts = wiCounts[appIteration.ID.String()]

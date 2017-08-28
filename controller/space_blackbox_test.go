@@ -3,6 +3,7 @@ package controller_test
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"testing"
 
 	"time"
@@ -32,20 +33,16 @@ var spaceConfiguration *configuration.ConfigurationData
 type DummyResourceManager struct {
 }
 
-func (m *DummyResourceManager) CreateResource(ctx context.Context, request *goa.RequestData, name string, rType string, uri *string, scopes *[]string, userID string) (*auth.Resource, error) {
+func (m *DummyResourceManager) CreateResource(ctx context.Context, request *http.Request, name string, rType string, uri *string, scopes *[]string, userID string) (*auth.Resource, error) {
 	return &auth.Resource{ResourceID: uuid.NewV4().String(), PermissionID: uuid.NewV4().String(), PolicyID: uuid.NewV4().String()}, nil
 }
 
-func (m *DummyResourceManager) DeleteResource(ctx context.Context, request *goa.RequestData, resource auth.Resource) error {
+func (m *DummyResourceManager) DeleteResource(ctx context.Context, request *http.Request, resource auth.Resource) error {
 	return nil
 }
 
 func init() {
-	var err error
-	spaceConfiguration, err = configuration.GetConfigurationData()
-	if err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
+	spaceConfiguration = configuration.Get()
 }
 
 type TestSpaceREST struct {

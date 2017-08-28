@@ -149,7 +149,7 @@ func main() {
 	app.MountStatusController(service, statusCtrl)
 
 	// Mount "workitem" controller
-	//workitemCtrl := controller.NewWorkitemController(service, appDB, &config)
+	//workitemCtrl := controller.NewWorkitemController(service, appDB, config)
 	workitemCtrl := controller.NewNotifyingWorkitemController(service, appDB, notificationChannel, config)
 	app.MountWorkitemController(service, workitemCtrl)
 
@@ -158,7 +158,7 @@ func main() {
 	app.MountNamedWorkItemsController(service, namedWorkitemsCtrl)
 
 	// Mount "workitems" controller
-	//workitemsCtrl := controller.NewWorkitemsController(service, appDB, &config)
+	//workitemsCtrl := controller.NewWorkitemsController(service, appDB, config)
 	workitemsCtrl := controller.NewNotifyingWorkitemsController(service, appDB, notificationChannel, config)
 	app.MountWorkitemsController(service, workitemsCtrl)
 
@@ -197,11 +197,11 @@ func main() {
 	}
 
 	// Mount "space" controller
-	spaceCtrl := controller.NewSpaceController(service, appDB, &config, auth.NewKeycloakResourceManager(config))
+	spaceCtrl := controller.NewSpaceController(service, appDB, config, auth.NewKeycloakResourceManager(config))
 	app.MountSpaceController(service, spaceCtrl)
 
 	// Mount "user" controller
-	userCtrl := controller.NewUserController(service, appDB, tokenManager, &config)
+	userCtrl := controller.NewUserController(service, appDB, tokenManager, config)
 	if config.GetTenantServiceURL() != "" {
 		log.Logger().Infof("Enabling Init Tenant service %v", config.GetTenantServiceURL())
 		userCtrl.InitTenant = account.NewInitTenant(config)
@@ -215,20 +215,20 @@ func main() {
 	app.MountUserServiceController(service, userServiceCtrl)
 
 	// Mount "search" controller
-	searchCtrl := controller.NewSearchController(service, appDB, &config)
+	searchCtrl := controller.NewSearchController(service, appDB, config)
 	app.MountSearchController(service, searchCtrl)
 
 	// Mount "users" controller
 	keycloakProfileService := login.NewKeycloakUserProfileClient()
-	usersCtrl := controller.NewUsersController(service, appDB, &config, keycloakProfileService)
+	usersCtrl := controller.NewUsersController(service, appDB, config, keycloakProfileService)
 	app.MountUsersController(service, usersCtrl)
 
 	// Mount "iterations" controller
-	iterationCtrl := controller.NewIterationController(service, appDB, &config)
+	iterationCtrl := controller.NewIterationController(service, appDB, config)
 	app.MountIterationController(service, iterationCtrl)
 
 	// Mount "spaceiterations" controller
-	spaceIterationCtrl := controller.NewSpaceIterationsController(service, appDB, &config)
+	spaceIterationCtrl := controller.NewSpaceIterationsController(service, appDB, config)
 	app.MountSpaceIterationsController(service, spaceIterationCtrl)
 
 	// Mount "userspace" controller
@@ -240,10 +240,10 @@ func main() {
 	app.MountRenderController(service, renderCtrl)
 
 	//Mount "space area" controller
-	spaceAreaCtrl := controller.NewSpaceAreasController(service, appDB, &config)
+	spaceAreaCtrl := controller.NewSpaceAreasController(service, appDB, config)
 	app.MountSpaceAreasController(service, spaceAreaCtrl)
 
-	filterCtrl := controller.NewFilterController(service, &config)
+	filterCtrl := controller.NewFilterController(service, config)
 	app.MountFilterController(service, filterCtrl)
 
 	// Mount "namedspaces" controller
@@ -251,15 +251,15 @@ func main() {
 	app.MountNamedspacesController(service, namedSpacesCtrl)
 
 	//Mount "comments" controller
-	commentsCtrl := controller.NewNotifyingCommentsController(service, appDB, notificationChannel, &config)
+	commentsCtrl := controller.NewNotifyingCommentsController(service, appDB, notificationChannel, config)
 	app.MountCommentsController(service, commentsCtrl)
 
 	// Mount "plannerBacklog" controller
-	plannerBacklogCtrl := controller.NewPlannerBacklogController(service, appDB, &config)
+	plannerBacklogCtrl := controller.NewPlannerBacklogController(service, appDB, config)
 	app.MountPlannerBacklogController(service, plannerBacklogCtrl)
 
 	// Mount "codebase" controller
-	codebaseCtrl := controller.NewCodebaseController(service, appDB, &config)
+	codebaseCtrl := controller.NewCodebaseController(service, appDB, config)
 	app.MountCodebaseController(service, codebaseCtrl)
 
 	// Mount "spacecodebases" controller
@@ -267,7 +267,7 @@ func main() {
 	app.MountSpaceCodebasesController(service, spaceCodebaseCtrl)
 
 	// Mount "collaborators" controller
-	collaboratorsCtrl := controller.NewCollaboratorsController(service, appDB, &config, auth.NewKeycloakPolicyManager(config))
+	collaboratorsCtrl := controller.NewCollaboratorsController(service, appDB, config, auth.NewKeycloakPolicyManager(config))
 	app.MountCollaboratorsController(service, collaboratorsCtrl)
 
 	// Mount "space template" controller
@@ -298,7 +298,7 @@ func main() {
 	// 	service.LogError("startup", "err", err)
 	// }
 
-	api.NewGinEngine(appDB, notificationChannel, &config).Run(config.GetHTTPAddress())
+	api.NewGinEngine(appDB, notificationChannel, config).Run(config.GetHTTPAddress())
 }
 
 func connectToDB(config *configuration.ConfigurationData) *gorm.DB {

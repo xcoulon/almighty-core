@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -50,11 +49,7 @@ func (rest *TestRecentSpacesREST) newTestKeycloakOAuthProvider(db application.DB
 }
 
 func (rest *TestRecentSpacesREST) SetupTest() {
-	c, err := configuration.GetConfigurationData()
-	if err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
-	rest.configuration = c
+	rest.configuration = configuration.Get()
 	publicKey, err := token.ParsePublicKey([]byte(rest.configuration.GetTokenPublicKey()))
 	require.Nil(rest.T(), err)
 	rest.tokenManager = token.NewManager(publicKey)
@@ -94,10 +89,7 @@ func (rest *TestRecentSpacesREST) TestResourceRequestPayload() {
 	service, controller := rest.SecuredController()
 
 	// Generate an access token for a test identity
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "api.example.org"},
-	}
-	tokenEndpoint, err := rest.configuration.GetKeycloakEndpointToken(r)
+	tokenEndpoint, err := rest.configuration.GetKeycloakEndpointToken(&http.Request{Host: "api.example.org"})
 	require.Nil(t, err)
 
 	accessToken, err := GenerateUserToken(service.Context, tokenEndpoint, rest.configuration, rest.configuration.GetKeycloakTestUserName(), rest.configuration.GetKeycloakTestUserSecret())

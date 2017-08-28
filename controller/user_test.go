@@ -1,7 +1,6 @@
 package controller_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -49,10 +48,7 @@ func (rest *TestUserREST) TestRunUserREST(t *testing.T) {
 }
 
 func (rest *TestUserREST) SetupSuite() {
-	config, err := configuration.GetConfigurationData()
-	if err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
+	config := configuration.Get()
 	rest.config = *config
 }
 

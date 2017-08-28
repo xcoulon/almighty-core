@@ -69,15 +69,13 @@ func (s *searchBlackBoxTest) SetupTest() {
 	s.db = gormapplication.NewGormDB(s.DB)
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 
-	var err error
 	// create a test identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "SearchBlackBoxTest user", "test provider")
 	require.Nil(s.T(), err)
 	s.testIdentity = *testIdentity
 
 	s.wiRepo = workitem.NewWorkItemRepository(s.DB)
-	spaceBlackBoxTestConfiguration, err := config.GetConfigurationData()
-	require.Nil(s.T(), err)
+	spaceBlackBoxTestConfiguration := config.Get()
 	s.spaceBlackBoxTestConfiguration = spaceBlackBoxTestConfiguration
 	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
 	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
@@ -262,12 +260,11 @@ func (s *searchBlackBoxTest) TestUnwantedCharactersRelatedToSearchLogic() {
 }
 
 func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemsPayload {
-	spaceRelatedURL := rest.AbsoluteURL(&goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}, app.SpaceHref(space.SystemSpace.String()))
-	witRelatedURL := rest.AbsoluteURL(&goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}, app.WorkitemtypeHref(space.SystemSpace.String(), workitem.SystemTask.String()))
+	spaceRelatedURL := rest.AbsoluteURL(&http.Request{Host: "api.service.domain.org"},
+		app.SpaceHref(space.SystemSpace.String()))
+	witRelatedURL := rest.AbsoluteURL(
+		&http.Request{Host: "api.service.domain.org"},
+		app.WorkitemtypeHref(space.SystemSpace.String(), workitem.SystemTask.String()))
 	c := app.CreateWorkitemsPayload{
 		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,

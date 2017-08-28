@@ -3,7 +3,6 @@ package controller_test
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -52,11 +51,7 @@ type workItemLinkCategorySuite struct {
 var wilCatConfiguration *config.ConfigurationData
 
 func init() {
-	var err error
-	wilCatConfiguration, err = config.GetConfigurationData()
-	if err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
+	wilCatConfiguration = config.Get()
 }
 
 // The SetupSuite method will run before the tests in the suite are run.
