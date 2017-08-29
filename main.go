@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/user"
 	"runtime"
-	"strings"
 	"time"
 
 	"context"
@@ -304,15 +303,6 @@ func main() {
 			}*/
 
 	engine := api.NewGinEngine(appDB, notificationChannel, config)
-	// If an /api/* route does not exist, redirect it to /legacyapi/* path
-	// to be handled by goa
-	engine.NoRoute(func(c *gin.Context) {
-		if strings.HasPrefix(c.Request.RequestURI, "/api/") {
-			c.Redirect(http.StatusTemporaryRedirect, strings.Replace(c.Request.RequestURI, "/api/", "/legacyapi/", 1))
-		} else {
-			c.String(http.StatusNotFound, "Not found!")
-		}
-	})
 	engine.Any("/legacyapi/*w", gin.WrapH(service.Mux))
 	engine.GET("/", gin.WrapH(http.FileServer(assetFS())))
 	engine.GET("/favicon.ico", gin.WrapH(http.NotFoundHandler()))
