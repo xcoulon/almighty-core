@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 
+	"github.com/fabric8-services/fabric8-wit/account/tenant"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/codebase"
@@ -15,9 +15,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/rest"
 
-	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
-	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 )
 
 const (
@@ -36,8 +34,9 @@ type codebaseConfiguration interface {
 // CodebaseController implements the codebase resource.
 type CodebaseController struct {
 	*goa.Controller
-	db     application.DB
-	config codebaseConfiguration
+	db         application.DB
+	config     codebaseConfiguration
+	ShowTenant func(context.Context) (*tenant.TenantSingle, error)
 }
 
 // NewCodebaseController creates a codebase controller.
@@ -79,7 +78,11 @@ func (c *CodebaseController) Edit(ctx *app.EditCodebaseContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
-	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), getNamespace(ctx))
+	ns, err := c.getCheNamespace(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+	}
+	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), ns)
 	workspaces, err := cheClient.ListWorkspaces(ctx, cb.URL)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -135,7 +138,11 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
-	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), getNamespace(ctx))
+	ns, err := c.getCheNamespace(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+	}
+	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), ns)
 
 	stackID := "java-centos"
 	if cb.StackID != nil && *cb.StackID != "" {
@@ -204,7 +211,11 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
-	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), getNamespace(ctx))
+	ns, err := c.getCheNamespace(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+	}
+	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), ns)
 	workspaceResp, err := cheClient.StartExistingWorkspace(ctx, ctx.WorkspaceID)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -298,9 +309,13 @@ func ConvertCodebase(request *http.Request, codebase *codebase.Codebase, additio
 	return i
 }
 
-// Get che server state.
+// CheState gets che server state.
 func (c *CodebaseController) CheState(ctx *app.CheStateCodebaseContext) error {
-	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), getNamespace(ctx))
+	ns, err := c.getCheNamespace(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+	}
+	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), ns)
 	cheState, err := cheClient.GetCheServerState(ctx)
 
 	if err != nil {
@@ -322,9 +337,14 @@ func (c *CodebaseController) CheState(ctx *app.CheStateCodebaseContext) error {
 	return ctx.OK(&state)
 }
 
-// Start che server if not running.
+// CheStart starts server if not running.
 func (c *CodebaseController) CheStart(ctx *app.CheStartCodebaseContext) error {
-	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), getNamespace(ctx))
+	ns, err := c.getCheNamespace(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+	}
+
+	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), ns)
 	cheState, err := cheClient.StartCheServer(ctx)
 
 	if err != nil {
@@ -346,18 +366,26 @@ func (c *CodebaseController) CheStart(ctx *app.CheStartCodebaseContext) error {
 
 	if isRunning {
 		return ctx.OK(&state)
-	} else {
-		return ctx.Accepted(&state)
 	}
+	return ctx.Accepted(&state)
 }
 
-// TODO: We need to dynamically get the real che namespace name from the tenant namespace from
-// somewhere more sensible then the token/generate/guess route.
-func getNamespace(ctx context.Context) string {
-	token := goajwt.ContextJWT(ctx)
-	if claims, ok := token.Claims.(jwt.MapClaims); ok {
-		email := claims["preferred_username"].(string)
-		return strings.Replace(strings.Split(email, "@")[0], ".", "-", -1) + "-che"
+func (c *CodebaseController) getCheNamespace(ctx context.Context) (string, error) {
+	t, err := c.ShowTenant(ctx)
+	if err != nil {
+		return "", err
 	}
-	return ""
+
+	if t.Data != nil && t.Data.Attributes != nil && t.Data.Attributes.Namespaces != nil {
+		for _, ns := range t.Data.Attributes.Namespaces {
+			if ns.Type != nil && *ns.Type == "che" && ns.Name != nil {
+				return *ns.Name, nil
+			}
+		}
+	}
+	log.Error(ctx, map[string]interface{}{
+		"data": t.Data,
+	}, "unable to locate che namespace")
+
+	return "", fmt.Errorf("unable to resolve user service che namespace")
 }

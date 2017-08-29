@@ -264,6 +264,7 @@ func main() {
 
 	// Mount "codebase" controller
 	codebaseCtrl := controller.NewCodebaseController(service, appDB, config)
+	codebaseCtrl.ShowTenant = account.NewShowTenant(config)
 	app.MountCodebaseController(service, codebaseCtrl)
 
 	// Mount "spacecodebases" controller
