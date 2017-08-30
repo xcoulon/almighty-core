@@ -3,25 +3,14 @@ package api_test
 import (
 	"context"
 	"net/http"
-	"net/http/httptest"
 
 	. "github.com/onsi/ginkgo"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/fabric8-services/fabric8-wit/api"
-	"github.com/fabric8-services/fabric8-wit/gormapplication"
+	. "github.com/fabric8-services/fabric8-wit/api/test"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 )
-
-// Execute submits the request and returns the response recording fo subseauent verifications
-func Execute(s gormtestsupport.GinkgoTestSuite, r *http.Request) *httptest.ResponseRecorder {
-	rr := httptest.NewRecorder()
-	httpEngine := api.NewGinEngine(gormapplication.NewGormDB(s.DB), nil, s.Configuration)
-	httpEngine.ServeHTTP(rr, r)
-	GinkgoT().Logf("Response status: %d", rr.Code)
-	return rr
-}
 
 type GinEngineTestSuite struct {
 	gormtestsupport.GinkgoTestSuite
