@@ -525,7 +525,7 @@ func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeNotModifiedUsingIfNoneMa
 func (s *workItemLinkTypeSuite) getWorkItemLinkTypeTestDataFunc() func(t *testing.T) []testSecureAPI {
 	return func(t *testing.T) []testSecureAPI {
 
-		privatekey, err := jwt.ParseRSAPrivateKeyFromPEM(s.Configuration.GetTokenPrivateKey())
+		privatekey, err := s.Configuration.GetTokenPrivateKey()
 		if err != nil {
 			t.Fatal("Could not parse Key ", err)
 		}

@@ -636,7 +636,7 @@ func (s *workItemLinkSuite) TestListWorkItemRelationshipsLinksNotFound() {
 
 func (s *workItemLinkSuite) getWorkItemLinkTestDataFunc() func(t *testing.T) []testSecureAPI {
 	return func(t *testing.T) []testSecureAPI {
-		privatekey, err := jwt.ParseRSAPrivateKeyFromPEM(s.Configuration.GetTokenPrivateKey())
+		privatekey, err := s.Configuration.GetTokenPrivateKey()
 		require.Nil(t, err, "Could not parse private key")
 		differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
 		require.Nil(t, err, "Could not parse private key")
@@ -792,7 +792,7 @@ func (s *workItemLinkSuite) TestUnauthorizeWorkItemLinkCUD() {
 // The work item ID will be used to construct /api/workitems/:id/relationships/links endpoints
 func (s *workItemLinkSuite) getWorkItemRelationshipLinksTestData(spaceID, wiID uuid.UUID) func(t *testing.T) []testSecureAPI {
 	return func(t *testing.T) []testSecureAPI {
-		privatekey, err := jwt.ParseRSAPrivateKeyFromPEM(s.Configuration.GetTokenPrivateKey())
+		privatekey, err := s.Configuration.GetTokenPrivateKey()
 		if err != nil {
 			t.Fatal("Could not parse Key ", err)
 		}

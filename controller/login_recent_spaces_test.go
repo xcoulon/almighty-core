@@ -41,7 +41,7 @@ func TestRunRecentSpacesREST(t *testing.T) {
 }
 
 func (rest *TestRecentSpacesREST) newTestKeycloakOAuthProvider(db application.DB) *login.KeycloakOAuthProvider {
-	publicKey, err := token.ParsePublicKey([]byte(rest.configuration.GetTokenPublicKey()))
+	publicKey, err := rest.configuration.GetTokenPublicKey()
 	require.Nil(rest.T(), err)
 	tokenManager := token.NewManager(publicKey)
 
@@ -50,7 +50,7 @@ func (rest *TestRecentSpacesREST) newTestKeycloakOAuthProvider(db application.DB
 
 func (rest *TestRecentSpacesREST) SetupTest() {
 	rest.configuration = configuration.Get()
-	publicKey, err := token.ParsePublicKey([]byte(rest.configuration.GetTokenPublicKey()))
+	publicKey, err := rest.configuration.GetTokenPublicKey()
 	require.Nil(rest.T(), err)
 	rest.tokenManager = token.NewManager(publicKey)
 

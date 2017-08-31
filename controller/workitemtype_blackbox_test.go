@@ -586,7 +586,7 @@ func (s *workItemTypeSuite) TestUnauthorizeWorkItemTypeCreate() {
 }
 
 func (s *workItemTypeSuite) getWorkItemTypeTestDataFunc() func(*testing.T) []testSecureAPI {
-	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((s.Configuration.GetTokenPrivateKey()))
+	privatekey, err := s.Configuration.GetTokenPrivateKey()
 	return func(t *testing.T) []testSecureAPI {
 		if err != nil {
 			t.Fatal("Could not parse Key ", err)

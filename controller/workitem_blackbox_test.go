@@ -521,7 +521,7 @@ func (s *WorkItemSuite) TestListByFields() {
 }
 func getWorkItemTestDataFunc(config configuration.ConfigurationData) func(t *testing.T) []testSecureAPI {
 	return func(t *testing.T) []testSecureAPI {
-		privatekey, err := jwt.ParseRSAPrivateKeyFromPEM(config.GetTokenPrivateKey())
+		privatekey, err := config.GetTokenPrivateKey()
 		if err != nil {
 			t.Fatal("Could not parse Key ", err)
 		}

@@ -5,6 +5,17 @@ import (
 	"net/http"
 )
 
+// KeycloakConfiguration represents a keycloak configuration
+type KeycloakConfiguration interface {
+	GetKeycloakEndpointAuthzResourceset(*http.Request) (string, error)
+	GetKeycloakEndpointToken(*http.Request) (string, error)
+	GetKeycloakEndpointClients(*http.Request) (string, error)
+	GetKeycloakEndpointAdmin(*http.Request) (string, error)
+	GetKeycloakEndpointEntitlement(*http.Request) (string, error)
+	GetKeycloakClientID() string
+	GetKeycloakSecret() string
+}
+
 // AuthzPolicyManager represents a space collaborators policy manager
 type AuthzPolicyManager interface {
 	GetPolicy(ctx context.Context, request *http.Request, policyID string) (*KeycloakPolicy, *string, error)
@@ -70,4 +81,16 @@ func (m *KeycloakPolicyManager) UpdatePolicy(ctx context.Context, request *http.
 	}
 
 	return UpdatePolicy(ctx, clientsEndpoint, clientID, policy, pat)
+}
+
+func getPat(ctx context.Context, requestData *http.Request, config KeycloakConfiguration) (string, error) {
+	endpoint, err := config.GetKeycloakEndpointToken(requestData)
+	if err != nil {
+		return "", err
+	}
+	token, err := GetProtectedAPIToken(ctx, endpoint, config.GetKeycloakClientID(), config.GetKeycloakSecret())
+	if err != nil {
+		return "", err
+	}
+	return token, nil
 }

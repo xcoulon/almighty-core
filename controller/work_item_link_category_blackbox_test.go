@@ -462,7 +462,7 @@ func (s *workItemLinkCategorySuite) TestListWorkItemLinkCategoryOK() {
 }
 
 func getWorkItemLinkCategoryTestData(t *testing.T) []testSecureAPI {
-	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((wilCatConfiguration.GetTokenPrivateKey()))
+	privatekey, err := wilCatConfiguration.GetTokenPrivateKey()
 	if err != nil {
 		t.Fatal("Could not parse Key ", err)
 	}

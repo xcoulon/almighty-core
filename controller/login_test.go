@@ -69,7 +69,7 @@ func (rest *TestLoginREST) SecuredController() (*goa.Service, *LoginController) 
 }
 
 func (rest *TestLoginREST) newTestKeycloakOAuthProvider(db application.DB) *login.KeycloakOAuthProvider {
-	publicKey, err := token.ParsePublicKey([]byte(rest.configuration.GetTokenPublicKey()))
+	publicKey, err := rest.configuration.GetTokenPublicKey()
 	require.Nil(rest.T(), err)
 	tokenManager := token.NewManager(publicKey)
 	return login.NewKeycloakOAuthProvider(db.Identities(), db.Users(), tokenManager, db)
