@@ -95,6 +95,25 @@ var _ = Describe("Spaces", func() {
 				assert.Equal(GinkgoT(), "A description", responseItem.Description)
 			})
 
+			Specify("Create Space KO - missing credentials", func() {
+				// given
+				name := "test-space-" + uuid.NewV4().String()
+				description := "A description"
+				payloadSpace := model.Space{
+					Name:        name,
+					Description: description,
+				}
+				payload := bytes.NewBuffer(make([]byte, 0))
+				err := jsonapi.MarshalPayload(payload, &payloadSpace)
+				require.Nil(GinkgoT(), err)
+				r, _ := http.NewRequest(http.MethodPost, "/api/spaces/", payload)
+				require.Nil(GinkgoT(), err)
+				// when
+				rr := Execute(s.GinkgoTestSuite, r)
+				// then
+				assert.Equal(GinkgoT(), http.StatusUnauthorized, rr.Code)
+			})
+
 		})
 
 	})
