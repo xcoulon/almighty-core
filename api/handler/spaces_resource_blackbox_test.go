@@ -44,25 +44,22 @@ type SpacesResourceBlackBoxTestSuite struct {
 
 type SpacesResourceTestSuite struct {
 	gormtestsupport.GinkgoTestSuite
-	clean func()
-	ctx   context.Context
+	ctx context.Context
 }
 
-var accessToken *string
 var _ = Describe("Spaces", func() {
 
-	s := SpacesResourceTestSuite{GinkgoTestSuite: gormtestsupport.NewGinkgoTestSuite("../../config.yaml")}
+	var s SpacesResourceTestSuite
+
 	BeforeEach(func() {
-		s.Setup()
-		s.clean = cleaner.DeleteCreatedEntities(s.DB)
+		s = SpacesResourceTestSuite{GinkgoTestSuite: gormtestsupport.NewGinkgoTestSuite("../../config.yaml")}
+		s.Clean = cleaner.DeleteCreatedEntities(s.DB)
 		var err error
-		_, _, accessToken, err = s.GenerateTestUserIdentityAndToken(s.Configuration.GetKeycloakTestUserName(), s.Configuration.GetKeycloakTestUserSecret())
 		require.Nil(GinkgoT(), err)
-		GinkgoT().Logf("Generated access token: %s\n", *accessToken)
 	})
 
 	AfterEach(func() {
-		// s.clean()
+		s.Clean()
 		s.TearDown()
 	})
 
@@ -82,7 +79,7 @@ var _ = Describe("Spaces", func() {
 				require.Nil(GinkgoT(), err)
 				r, _ := http.NewRequest(http.MethodPost, "/api/spaces/", payload)
 				require.Nil(GinkgoT(), err)
-				r.Header.Set("Authorization", "Bearer "+*accessToken)
+				r.Header.Set("Authorization", "Bearer "+testuser1.AccessToken)
 				// when
 				rr := Execute(s.GinkgoTestSuite, r)
 				// then

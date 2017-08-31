@@ -11,7 +11,7 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/auth"
-	config "github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
@@ -21,11 +21,10 @@ import (
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/token"
 	"github.com/fabric8-services/fabric8-wit/workitem"
-	. "github.com/onsi/ginkgo"
-	errs "github.com/pkg/errors"
-
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq" // need to import postgres driver
+	. "github.com/onsi/ginkgo"
+	errs "github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -35,47 +34,38 @@ var _ suite.TearDownAllSuite = &DBTestSuite{}
 
 // NewGinkgoTestSuite instanciate a new DBTestSuite
 func NewGinkgoTestSuite(configFilePath string) GinkgoTestSuite {
-	return GinkgoTestSuite{configFile: configFilePath}
+	s := GinkgoTestSuite{configFile: configFilePath}
+	s.Setup()
+	return s
 }
 
 // GinkgoTestSuite is a base for tests using Ginkgo with a gorm db
 type GinkgoTestSuite struct {
 	configFile    string
-	Configuration *config.ConfigurationData
+	Configuration *configuration.ConfigurationData
 	DB            *gorm.DB
-	auth          login.KeycloakOAuthService
+	Clean         func()
 }
 
 // Setup initializes the DB connection
 func (s *GinkgoTestSuite) Setup() {
 	// resource.Require(s.T(), resource.Database)
-	configuration, err := config.NewConfigurationData(s.configFile, true)
+	config, err := configuration.NewConfigurationData(s.configFile, true)
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
 			"err": err,
 		}, "failed to setup the configuration")
 	}
-	s.Configuration = configuration
+	s.Configuration = config
 	if _, c := os.LookupEnv(resource.Database); c != false {
 		s.DB, err = gorm.Open("postgres", s.Configuration.GetPostgresConfigString())
 		if err != nil {
 			log.Panic(nil, map[string]interface{}{
 				"err":             err,
-				"postgres_config": configuration.GetPostgresConfigString(),
+				"postgres_config": config.GetPostgresConfigString(),
 			}, "failed to connect to the database")
 		}
 	}
-	identityRepository := account.NewIdentityRepository(s.DB)
-	userRepository := account.NewUserRepository(s.DB)
-	appDB := gormapplication.NewGormDB(s.DB)
-	publicKey, err := s.Configuration.GetTokenPublicKey()
-	if err != nil {
-		log.Panic(nil, map[string]interface{}{
-			"err": err,
-		}, "failed to parse public token")
-	}
-	tokenManager := token.NewManager(publicKey)
-	s.auth = login.NewKeycloakOAuthProvider(identityRepository, userRepository, tokenManager, appDB)
 }
 
 // PopulateGinkgoTestSuite populates the DB with common values
@@ -120,6 +110,18 @@ func (s *GinkgoTestSuite) DisableGormCallbacks() func() {
 
 // GenerateTestUserIdentityAndToken calls the KC instance to retrieve the token for the given username and secret and generates the user/identity records in the DB
 func (s *GinkgoTestSuite) GenerateTestUserIdentityAndToken(username, userSecret string) (*account.Identity, *account.User, *string, error) {
+	identityRepository := account.NewIdentityRepository(s.DB)
+	userRepository := account.NewUserRepository(s.DB)
+	appDB := gormapplication.NewGormDB(s.DB)
+	publicKey, err := s.Configuration.GetTokenPublicKey()
+	if err != nil {
+		log.Panic(nil, map[string]interface{}{
+			"err": err,
+		}, "failed to parse public token")
+	}
+	tokenManager := token.NewManager(publicKey)
+
+	auth := login.NewKeycloakOAuthProvider(identityRepository, userRepository, tokenManager, appDB)
 	tokenEndpoint, err := s.Configuration.GetKeycloakEndpointToken(&http.Request{Host: "api.example.org"})
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
@@ -146,7 +148,7 @@ func (s *GinkgoTestSuite) GenerateTestUserIdentityAndToken(username, userSecret 
 		}, "unable to get Keycloak account endpoint URL")
 		return nil, nil, nil, err
 	}
-	identity, user, err := s.auth.CreateOrUpdateKeycloakUser(*accessToken, context.Background(), profileEndpoint)
+	identity, user, err := auth.CreateOrUpdateKeycloakUser(*accessToken, context.Background(), profileEndpoint)
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
 			"err": err,
