@@ -397,7 +397,7 @@ func CreatePermission(ctx context.Context, clientsEndpoint string, clientID stri
 			"permission":      permission,
 			"response_status": res.Status,
 			"response_body":   rest.ReadBody(res.Body),
-		}, "unable to update the Keycloak permission")
+		}, "unable to create the Keycloak permission")
 		return "", errors.NewInternalError(ctx, errs.New("unable to create the Keycloak permission. Response status: "+res.Status+". Responce body: "+rest.ReadBody(res.Body)))
 	}
 	jsonString := rest.ReadBody(res.Body)

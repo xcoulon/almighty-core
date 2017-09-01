@@ -45,6 +45,15 @@ type GinkgoTestSuite struct {
 	Configuration *configuration.ConfigurationData
 	DB            *gorm.DB
 	Clean         func()
+	testUser1     *TestUser
+	testUser2     *TestUser
+}
+
+// TestUser the structure to hold data about the test user, including their access token retrieved from KC.
+type TestUser struct {
+	User        account.User
+	Identity    account.Identity
+	AccessToken string
 }
 
 // Setup initializes the DB connection
@@ -108,54 +117,46 @@ func (s *GinkgoTestSuite) DisableGormCallbacks() func() {
 	}
 }
 
+//TestUser1 return the TestUser structure for the testuser1
+func (s *GinkgoTestSuite) TestUser1() *TestUser {
+	if s.testUser1 == nil {
+		s.testUser1 = s.generateTestUserIdentityAndToken(s.Configuration.GetKeycloakTestUserName(), s.Configuration.GetKeycloakTestUserSecret())
+	}
+	return s.testUser1
+}
+
+//TestUser2 return the TestUser structure for the testuser2
+func (s *GinkgoTestSuite) TestUser2() *TestUser {
+	if s.testUser2 == nil {
+		s.testUser2 = s.generateTestUserIdentityAndToken(s.Configuration.GetKeycloakTestUser2Name(), s.Configuration.GetKeycloakTestUser2Secret())
+	}
+	return s.testUser2
+}
+
 // GenerateTestUserIdentityAndToken calls the KC instance to retrieve the token for the given username and secret and generates the user/identity records in the DB
-func (s *GinkgoTestSuite) GenerateTestUserIdentityAndToken(username, userSecret string) (*account.Identity, *account.User, *string, error) {
+func (s *GinkgoTestSuite) generateTestUserIdentityAndToken(username, userSecret string) *TestUser {
 	identityRepository := account.NewIdentityRepository(s.DB)
 	userRepository := account.NewUserRepository(s.DB)
 	appDB := gormapplication.NewGormDB(s.DB)
 	publicKey, err := s.Configuration.GetTokenPublicKey()
-	if err != nil {
-		log.Panic(nil, map[string]interface{}{
-			"err": err,
-		}, "failed to parse public token")
-	}
+	require.Nil(GinkgoT(), err, "failed to parse public token")
 	tokenManager := token.NewManager(publicKey)
 
 	auth := login.NewKeycloakOAuthProvider(identityRepository, userRepository, tokenManager, appDB)
 	tokenEndpoint, err := s.Configuration.GetKeycloakEndpointToken(&http.Request{Host: "api.example.org"})
-	if err != nil {
-		log.Error(nil, map[string]interface{}{
-			"err": err,
-		}, "unable to get Keycloak token endpoint URL")
-		return nil, nil, nil, errs.Wrap(err, "unable to get Keycloak token endpoint URL")
-	}
-	log.Warn(nil, map[string]interface{}{"tokenEndpoint": tokenEndpoint}, "Retrieved token Endpoint")
-
+	require.Nil(GinkgoT(), err, "unable to get Keycloak token endpoint URL")
 	accessToken, err := s.generateAccessToken(tokenEndpoint, username, userSecret)
-	if err != nil {
-		log.Error(nil, map[string]interface{}{
-			"err":      err,
-			"username": username,
-		}, "unable to get Generate User token")
-		return nil, nil, nil, errs.Wrap(err, "unable to generate test token ")
-	}
-
+	require.Nil(GinkgoT(), err, "unable to generate test token")
 	// Creates the testuser user and identity if they don't yet exist
 	profileEndpoint, err := s.Configuration.GetKeycloakAccountEndpoint(&http.Request{Host: "api.example.org"})
-	if err != nil {
-		log.Error(nil, map[string]interface{}{
-			"err": err,
-		}, "unable to get Keycloak account endpoint URL")
-		return nil, nil, nil, err
-	}
+	require.Nil(GinkgoT(), err, "unable to get Keycloak account endpoint URL")
 	identity, user, err := auth.CreateOrUpdateKeycloakUser(*accessToken, context.Background(), profileEndpoint)
-	if err != nil {
-		log.Error(nil, map[string]interface{}{
-			"err": err,
-		}, "unable to create or update keycloak user and identity")
-		return nil, nil, nil, err
+	require.Nil(GinkgoT(), err, "unable to create or update keycloak user and identity")
+	return &TestUser{
+		Identity:    *identity,
+		User:        *user,
+		AccessToken: *accessToken,
 	}
-	return identity, user, accessToken, nil
 }
 
 func (s *GinkgoTestSuite) generateAccessToken(tokenEndpoint, username, userSecret string) (*string, error) {
@@ -173,7 +174,7 @@ func (s *GinkgoTestSuite) generateAccessToken(tokenEndpoint, username, userSecre
 	token, err := auth.ReadToken(context.Background(), res)
 	require.Nil(GinkgoT(), err)
 	accessToken := token.AccessToken
-	log.Debug(nil, nil, "Token: %s", *accessToken)
+	log.Info(nil, map[string]interface{}{"username": username}, "Token: %s", *accessToken)
 	_, err = jwt.Parse(*accessToken, func(t *jwt.Token) (interface{}, error) {
 		return s.Configuration.GetTokenPublicKey()
 	})
@@ -184,6 +185,5 @@ func (s *GinkgoTestSuite) generateAccessToken(tokenEndpoint, username, userSecre
 		return nil, err
 	}
 
-	log.Info(nil, nil, "access token retrieved and validated :)")
 	return accessToken, nil
 }

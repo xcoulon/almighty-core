@@ -13,12 +13,10 @@ import (
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	. "github.com/onsi/ginkgo"
 	uuid "github.com/satori/go.uuid"
+	"github.com/stretchr/testify/require"
 )
 
 func makeTokenString(SigningAlgorithm string, identity string, editableSpaces []uuid.UUID) string {
-	if SigningAlgorithm == "" {
-		SigningAlgorithm = "RS256"
-	}
 	token := jwt.New(jwt.GetSigningMethod(SigningAlgorithm))
 	claims := token.Claims.(jwt.MapClaims)
 	claims["sub"] = identity // subject
@@ -27,7 +25,8 @@ func makeTokenString(SigningAlgorithm string, identity string, editableSpaces []
 
 	tss, _ := token.SigningString()
 	fmt.Printf("Submitted signing string: '%v'\n", tss)
-	tokenString, _ := token.SignedString(authz.SigningKey)
+	tokenString, err := token.SignedString(authz.SigningKey)
+	require.Nil(GinkgoT(), err, "error while signing the token")
 	return tokenString
 }
 

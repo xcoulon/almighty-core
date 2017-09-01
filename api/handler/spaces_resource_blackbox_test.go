@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"net/http"
+	"net/http/httptest"
 
 	. "github.com/onsi/ginkgo"
 
@@ -75,19 +76,13 @@ var _ = Describe("Spaces", func() {
 					Name:        name,
 					Description: description,
 				}
-				payload := bytes.NewBuffer(make([]byte, 0))
-				err := jsonapi.MarshalPayload(payload, &payloadSpace)
-				require.Nil(GinkgoT(), err)
-				r, _ := http.NewRequest(http.MethodPost, "/api/spaces/", payload)
-				require.Nil(GinkgoT(), err)
-				r.Header.Set("Authorization", "Bearer "+testuser1.AccessToken)
 				// when
-				rr := Execute(s.GinkgoTestSuite, r)
+				rr := CreateSpace(&s.GinkgoTestSuite, &payloadSpace, s.TestUser1())
 				// then
 				assert.Equal(GinkgoT(), http.StatusCreated, rr.Code)
-				responseItem := model.Space{}
 				GinkgoT().Logf("Response body:\n%s", rr.Body.String())
-				err = jsonapi.UnmarshalPayload(rr.Body, &responseItem)
+				responseItem := model.Space{}
+				err := jsonapi.UnmarshalPayload(rr.Body, &responseItem)
 				require.Nil(GinkgoT(), err)
 				assert.NotNil(GinkgoT(), responseItem.ID)
 				assert.Equal(GinkgoT(), "A description", responseItem.Description)
@@ -101,13 +96,7 @@ var _ = Describe("Spaces", func() {
 					Name:        name,
 					Description: description,
 				}
-				payload := bytes.NewBuffer(make([]byte, 0))
-				err := jsonapi.MarshalPayload(payload, &payloadSpace)
-				require.Nil(GinkgoT(), err)
-				r, _ := http.NewRequest(http.MethodPost, "/api/spaces/", payload)
-				require.Nil(GinkgoT(), err)
-				// when
-				rr := Execute(s.GinkgoTestSuite, r)
+				rr := CreateSpace(&s.GinkgoTestSuite, &payloadSpace, nil)
 				// then
 				assert.Equal(GinkgoT(), http.StatusUnauthorized, rr.Code)
 			})
@@ -116,3 +105,15 @@ var _ = Describe("Spaces", func() {
 
 	})
 })
+
+func CreateSpace(suite *gormtestsupport.GinkgoTestSuite, payloadSpace *model.Space, testuser *gormtestsupport.TestUser) *httptest.ResponseRecorder {
+	payload := bytes.NewBuffer(make([]byte, 0))
+	err := jsonapi.MarshalPayload(payload, payloadSpace)
+	require.Nil(GinkgoT(), err)
+	r, _ := http.NewRequest(http.MethodPost, "/api/spaces/", payload)
+	require.Nil(GinkgoT(), err)
+	if testuser != nil {
+		r.Header.Set("Authorization", "Bearer "+testuser.AccessToken)
+	}
+	return Execute(*suite, r)
+}

@@ -18,14 +18,17 @@ import (
 )
 
 //SigningKey the key for signing the JWT
-var SigningKey []byte
+var SigningKey *rsa.PrivateKey
 
 //VerifyKey the key for verifying the JWT
 var VerifyKey *rsa.PublicKey
 
 func init() {
-	// SigningKey = configuration.Get().GetTokenPrivateKey()
 	var err error
+	SigningKey, err = configuration.Get().GetTokenPrivateKey()
+	if err != nil {
+		log.Panic(nil, nil, "Unable to load private key: ", err.Error())
+	}
 	VerifyKey, err = configuration.Get().GetTokenPublicKey()
 	if err != nil {
 		log.Panic(nil, nil, "Unable to load public key: ", err.Error())

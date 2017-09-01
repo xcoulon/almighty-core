@@ -116,9 +116,10 @@ var config *ConfigurationData
 
 // ConfigurationData encapsulates the Viper configuration object which stores the configuration data in-memory.
 type ConfigurationData struct {
-	v              *viper.Viper
-	migrateDB      bool
-	tokenPublicKey *rsa.PublicKey // the public key is cached in the config once it has been loaded successfully
+	v               *viper.Viper
+	migrateDB       bool
+	tokenPublicKey  *rsa.PublicKey  // the public key is cached in the config once it has been loaded successfully
+	tokenPrivateKey *rsa.PrivateKey // the private key is cached in the config once it has been loaded successfully
 }
 
 // Get gets the config, making sure it's loaded once and only once.
@@ -529,8 +530,15 @@ func (c *ConfigurationData) GetCacheControlUser() string {
 
 // GetTokenPrivateKey returns the private key (as set via config file or environment variable)
 // that is used to sign the authentication token.
-func (c *ConfigurationData) GetTokenPrivateKey() []byte {
-	return []byte(c.v.GetString(varTokenPrivateKey))
+func (c *ConfigurationData) GetTokenPrivateKey() (*rsa.PrivateKey, error) {
+	if c.tokenPrivateKey == nil {
+		var err error
+		// retrieve the public key in the KC instance corresponding to the dev mode when it's enabled.
+		c.tokenPrivateKey, err = jwt.ParseRSAPrivateKeyFromPEM([]byte(c.v.GetString(varTokenPrivateKey)))
+		return c.tokenPrivateKey, err
+	}
+	return c.tokenPrivateKey, nil
+
 }
 
 // GetTokenPublicKey returns the public key (as set via config file or environment variable)
