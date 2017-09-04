@@ -48,7 +48,7 @@ func NewJWTAuthMiddleware(db application.DB) *ginjwt.GinJWTMiddleware {
 		// asymetric algorithms not supported yet. See https://github.com/appleboy/gin-jwt/pull/80
 		SigningAlgorithm: "RS256",
 		IdentityHandler:  NewIdentityHandler(),
-		Authorizator:     NewAuthorizationHandler(db),
+		// Authorizator:     NewAuthorizator(),
 		// Callback function that will be called during login.
 		// Using this function it is possible to add additional payload data to the webtoken.
 		// The data is then made available during requests via c.Get("JWT_PAYLOAD").

@@ -32,11 +32,11 @@ type SpacesResourceConfiguration interface {
 type SpacesResource struct {
 	db              application.DB
 	config          SpacesResourceConfiguration
-	resourceManager auth.AuthzResourceManager
+	resourceManager *auth.AuthzResourceManager
 }
 
 // NewSpacesResource returns a new SpacesResource
-func NewSpacesResource(db application.DB, config SpacesResourceConfiguration, resourceManager auth.AuthzResourceManager) SpacesResource {
+func NewSpacesResource(db application.DB, config SpacesResourceConfiguration, resourceManager *auth.AuthzResourceManager) SpacesResource {
 	return SpacesResource{
 		db:              db,
 		config:          config,
@@ -138,15 +138,15 @@ func (r SpacesResource) Create(ctx *gin.Context) {
 			return errs.Wrapf(err, "failed to create iteration for space named '%s'", createdSpace.Name)
 		}
 
-		kcSpaceResource, err := r.resourceManager.CreateResource(ctx, ctx.Request, spaceID.String(), spaceResourceType, &createdSpace.Name, &scopes, currentUserID.String())
+		kcSpaceResource, err := r.resourceManager.CreateSpace(ctx, ctx.Request, spaceID.String())
 		if err != nil {
 			return errs.Wrapf(err, "failed to create KC resource for space with name '%s'", createdSpace.Name)
 		}
 		// finally, create the `space resource` using the remote KC data
 		spaceResource := &space.Resource{
-			ResourceID:   kcSpaceResource.ResourceID,
-			PolicyID:     kcSpaceResource.PolicyID,
-			PermissionID: kcSpaceResource.PermissionID,
+			ResourceID:   kcSpaceResource.Data.ResourceID,
+			PolicyID:     kcSpaceResource.Data.PolicyID,
+			PermissionID: kcSpaceResource.Data.PermissionID,
 			SpaceID:      spaceID,
 		}
 		_, err = appl.SpaceResources().Create(ctx, spaceResource)

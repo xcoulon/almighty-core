@@ -16,7 +16,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/rest"
-	wittoken "github.com/fabric8-services/fabric8-wit/token"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,7 +35,7 @@ var (
 func init() {
 	var err error
 	config = configuration.Get()
-	publicKey, err = wittoken.ParsePublicKey([]byte(config.GetTokenPublicKey()))
+	publicKey, err = config.GetTokenPublicKey()
 	if err != nil {
 		panic(fmt.Errorf("Failed to parse the public key: %s", err.Error()))
 	}

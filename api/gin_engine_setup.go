@@ -20,7 +20,7 @@ func NewGinEngine(appDB *gormapplication.GormDB, notificationChannel notificatio
 		c.String(200, "pong")
 	})
 	authMiddleware := authz.NewJWTAuthMiddleware(appDB)
-	spacesResource := handler.NewSpacesResource(appDB, config, auth.NewKeycloakResourceManager(config))
+	spacesResource := handler.NewSpacesResource(appDB, config, auth.NewAuthzResourceManager(config))
 	workitemsResource := handler.NewWorkItemsResource(appDB, notificationChannel, config)
 	httpEngine.GET("/api/spaces", spacesResource.List)
 	httpEngine.GET("/api/spaces/:spaceID", spacesResource.GetByID)
