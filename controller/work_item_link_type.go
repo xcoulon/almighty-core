@@ -157,7 +157,7 @@ func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeConte
 		hrefFunc := func(obj interface{}) string {
 			return fmt.Sprintf(app.WorkItemLinkTypeHref(createdModelLinkType.SpaceID, "%v"), obj)
 		}
-		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.Request, ctx.ResponseData, hrefFunc, currentUserIdentityID)
+		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, hrefFunc, currentUserIdentityID)
 		err = enrichLinkTypeSingle(linkCtx, &appLinkType)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal("Failed to enrich link type: %s", err.Error()))
@@ -209,7 +209,7 @@ func (c *WorkItemLinkTypeController) List(ctx *app.ListWorkItemLinkTypeContext) 
 			hrefFunc := func(obj interface{}) string {
 				return fmt.Sprintf(app.WorkItemLinkTypeHref(ctx.SpaceID, "%v"), obj)
 			}
-			linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.Request, ctx.ResponseData, hrefFunc, nil)
+			linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, hrefFunc, nil)
 			err = enrichLinkTypeList(linkCtx, &appLinkTypes)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal("Failed to enrich link types: %s", err.Error()))
@@ -235,7 +235,7 @@ func (c *WorkItemLinkTypeController) Show(ctx *app.ShowWorkItemLinkTypeContext) 
 			hrefFunc := func(obj interface{}) string {
 				return fmt.Sprintf(app.WorkItemLinkTypeHref(ctx.SpaceID, "%v"), obj)
 			}
-			linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.Request, ctx.ResponseData, hrefFunc, nil)
+			linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, hrefFunc, nil)
 			err = enrichLinkTypeSingle(linkCtx, &appLinkType)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal("Failed to enrich link type: %s", err.Error()))
@@ -278,7 +278,7 @@ func (c *WorkItemLinkTypeController) Update(ctx *app.UpdateWorkItemLinkTypeConte
 		hrefFunc := func(obj interface{}) string {
 			return fmt.Sprintf(app.WorkItemLinkTypeHref(ctx.SpaceID, "%v"), obj)
 		}
-		linkTypeCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.Request, ctx.ResponseData, hrefFunc, currentUserIdentityID)
+		linkTypeCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, hrefFunc, currentUserIdentityID)
 		err = enrichLinkTypeSingle(linkTypeCtx, &appLinkType)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal("Failed to enrich link type: %s", err.Error()))

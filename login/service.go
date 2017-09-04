@@ -251,7 +251,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 
 	// First time access, redirect to oauth provider
 	redirect := ctx.Redirect
-	referrer := ctx.RequestData.Header.Get("Referer")
+	referrer := ctx.Request.Header.Get("Referer")
 	if redirect == nil {
 		if referrer == "" {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(ctx, goa.ErrBadRequest("Referer Header and redirect param are both empty. At least one should be specified."))

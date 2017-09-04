@@ -38,7 +38,8 @@ func (s *TestPolicySuite) TearDownSuite() {
 func (s *TestPolicySuite) TestGetPolicyOK() {
 	policy, policyID := createPermissionWithPolicy(s)
 
-	obtainedPolicy, newPat, err := s.policyManager.GetPolicy(context.Background(), &http.Request{Host: "domain.io"}, policyID)
+	r := &http.Request{Host: "domain.io"}
+	obtainedPolicy, newPat, err := s.policyManager.GetPolicy(context.Background(), r, policyID)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), obtainedPolicy)
 	require.NotNil(s.T(), newPat)

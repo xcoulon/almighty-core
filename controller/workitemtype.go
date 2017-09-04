@@ -152,7 +152,7 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 	})
 }
 
-// converts from models to app representation
+// ConvertWorkItemTypeFromModel converts from models to app representation
 func ConvertWorkItemTypeFromModel(request *http.Request, t *workitem.WorkItemType) app.WorkItemTypeData {
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(t.SpaceID.String()))
 	id := t.ID

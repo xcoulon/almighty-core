@@ -12,6 +12,7 @@ import (
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/fabric8-services/fabric8-auth/configuration"
 	. "github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/satori/go.uuid"
@@ -28,7 +29,7 @@ const (
 
 var reqLong *http.Request
 var reqShort *http.Request
-var config *ConfigurationData
+var config *configuration.ConfigurationData
 
 func TestMain(m *testing.M) {
 	resetConfiguration(defaultConfigFilePath)
@@ -170,7 +171,7 @@ func TestGetKeycloakUserInfoEndpointOK(t *testing.T) {
 	checkGetServiceEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/realms/"+config.GetKeycloakRealm()+"/account", config.GetKeycloakAccountEndpoint)
 }
 
-func checkGetServiceEndpointOK(t *testing.T, expectedEndpoint string, getEndpoint func(req *goa.RequestData) (string, error)) {
+func checkGetServiceEndpointOK(t *testing.T, expectedEndpoint string, getEndpoint func(req *http.Request) (string, error)) {
 	url, err := getEndpoint(reqLong)
 	assert.Nil(t, err)
 	// In dev mode it's always the defualt value regardless of the request
@@ -253,7 +254,7 @@ func generateEnvKey(yamlKey string) string {
 	return "F8_" + strings.ToUpper(strings.Replace(yamlKey, ".", "_", -1))
 }
 
-func checkGetKeycloakEndpointSetByEnvVariableOK(t *testing.T, envName string, getEndpoint func(req *http.Request) (string, error)) {
+func checkGetKeycloakEndpointSetByEnvVaribaleOK(t *testing.T, envName string, getEndpoint func(req *http.Request) (string, error)) {
 	envValue := uuid.NewV4().String()
 	env := os.Getenv(envName)
 	defer func() {

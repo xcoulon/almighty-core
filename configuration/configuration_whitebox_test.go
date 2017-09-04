@@ -15,10 +15,9 @@ import (
 
 var reqLong *http.Request
 var reqShort *http.Request
-var testConfig *ConfigurationData
+var config *ConfigurationData
 
 func init() {
-
 	// ensure that the content here is executed only once.
 	reqLong = &http.Request{Host: "api.service.domain.org"}
 	reqShort = &http.Request{Host: "api.domain.org"}
@@ -173,7 +172,7 @@ func TestRedirectURLsForLocalhostRequestAreExcepted(t *testing.T) {
 func validateRedirectURL(t *testing.T, request string, redirect string) bool {
 	req, err := http.NewRequest("", request, nil)
 	require.Nil(t, err)
-	whitelist, err := config.checkLocalhostRedirectException(req)
+	whitelist, err := config.checkLocalhostRedirectException(r)
 	require.Nil(t, err)
 
 	matched, err := regexp.MatchString(whitelist, redirect)

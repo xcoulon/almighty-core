@@ -213,7 +213,8 @@ func createParentChildWorkItemLinkType(name string, categoryID, spaceID uuid.UUI
 		LinkCategoryID: categoryID,
 		SpaceID:        spaceID,
 	}
-	payload := ConvertWorkItemLinkTypeFromModel(&http.Request{Host: "api.service.domain.org"}, lt)
+	reqLong := &http.Request{Host: "api.service.domain.org"}
+	payload := ConvertWorkItemLinkTypeFromModel(reqLong, lt)
 	// The create payload is required during creation. Simply copy data over.
 	return &app.CreateWorkItemLinkTypePayload{
 		Data: payload.Data,

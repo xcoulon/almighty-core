@@ -49,23 +49,23 @@ type hrefLinkFunc func(obj interface{}) string
 // It can easily be extended.
 type workItemLinkContext struct {
 	Request               *http.Request
-	RequestData           *goa.RequestData
-	ResponseData          *goa.ResponseData
+	ResponseWriter        http.ResponseWriter
 	Application           application.Application
 	Context               context.Context
+	Service               *goa.Service
 	CurrentUserIdentityID *uuid.UUID
 	DB                    application.DB
 	LinkFunc              hrefLinkFunc
 }
 
 // newWorkItemLinkContext returns a new workItemLinkContext
-func newWorkItemLinkContext(ctx context.Context, appl application.Application, db application.DB, request *http.Request, responseData *goa.ResponseData, linkFunc hrefLinkFunc, currentUserIdentityID *uuid.UUID) *workItemLinkContext {
+func newWorkItemLinkContext(ctx context.Context, service *goa.Service, appl application.Application, db application.DB, request *http.Request, responseWriter http.ResponseWriter, linkFunc hrefLinkFunc, currentUserIdentityID *uuid.UUID) *workItemLinkContext {
 	return &workItemLinkContext{
-		Request: request,
-		// RequestData:           requestData,
-		ResponseData:          responseData,
+		Request:               request,
+		ResponseWriter:        responseWriter,
 		Application:           appl,
 		Context:               ctx,
+		Service:               service,
 		CurrentUserIdentityID: currentUserIdentityID,
 		DB:       db,
 		LinkFunc: linkFunc,
@@ -276,7 +276,7 @@ func createWorkItemLink(ctx *workItemLinkContext, httpFuncs createWorkItemLinkFu
 	if err := enrichLinkSingle(ctx, &createdAppLink); err != nil {
 		return jsonapi.JSONErrorResponse(httpFuncs, err)
 	}
-	ctx.ResponseData.Header().Set("Location", app.WorkItemLinkHref(createdAppLink.Data.ID))
+	ctx.ResponseWriter.Header().Set("Location", app.WorkItemLinkHref(createdAppLink.Data.ID))
 	return httpFuncs.Created(&createdAppLink)
 }
 
@@ -286,7 +286,7 @@ func (c *WorkItemLinkController) Create(ctx *app.CreateWorkItemLinkContext) erro
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
-	linkCtx := newWorkItemLinkContext(ctx.Context, c.db, c.db, ctx.Request, ctx.ResponseData, app.WorkItemLinkHref, currentUserIdentityID)
+	linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, c.db, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkHref, currentUserIdentityID)
 	return createWorkItemLink(linkCtx, ctx, ctx.Payload)
 }
 
@@ -314,7 +314,7 @@ func (c *WorkItemLinkController) Delete(ctx *app.DeleteWorkItemLinkContext) erro
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.Request, ctx.ResponseData, app.WorkItemLinkHref, currentUserIdentityID)
+		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkHref, currentUserIdentityID)
 		return deleteWorkItemLink(linkCtx, ctx, ctx.LinkID)
 	})
 }
@@ -327,7 +327,7 @@ func (c *WorkItemLinkController) Show(ctx *app.ShowWorkItemLinkContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		return ctx.ConditionalRequest(*modelLink, c.config.GetCacheControlWorkItemLink, func() error {
-			linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.Request, ctx.ResponseData, app.WorkItemLinkHref, nil)
+			linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkHref, nil)
 			// convert to rest representation
 			appLink := ConvertLinkFromModel(*modelLink)
 			if err := enrichLinkSingle(linkCtx, &appLink); err != nil {
@@ -357,7 +357,7 @@ func updateWorkItemLink(ctx *workItemLinkContext, httpFuncs updateWorkItemLinkFu
 	savedModelLink, err := ctx.Application.WorkItemLinks().Save(ctx.Context, *modelLink, *ctx.CurrentUserIdentityID)
 	if err != nil {
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(ctx.Context, err)
-		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+		return ctx.Service.Send(ctx.Context, httpStatusCode, jerrors)
 	}
 	// Convert the created link type entry into a rest representation
 	savedAppLink := ConvertLinkFromModel(*savedModelLink)
@@ -375,7 +375,7 @@ func (c *WorkItemLinkController) Update(ctx *app.UpdateWorkItemLinkContext) erro
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.Request, ctx.ResponseData, app.WorkItemLinkHref, currentUserIdentityID)
+		linkCtx := newWorkItemLinkContext(ctx.Context, ctx.Service, appl, c.db, ctx.Request, ctx.ResponseWriter, app.WorkItemLinkHref, currentUserIdentityID)
 		return updateWorkItemLink(linkCtx, ctx, ctx.Payload)
 	})
 }

@@ -58,6 +58,7 @@ func (s *TestAuthSuite) TearDownSuite() {
 }
 
 func (s *TestAuthSuite) TestCreateAndDeleteResourceOK() {
+	r := &http.Request{Host: "domain.io"}
 	ctx := context.Background()
 	authzEndpoint, err := config.GetKeycloakEndpointAuthzResourceset(&http.Request{Host: "domain.io"})
 	require.Nil(s.T(), err)
@@ -68,8 +69,9 @@ func (s *TestAuthSuite) TestCreateAndDeleteResourceOK() {
 }
 
 func (s *TestAuthSuite) TestDeleteNonexistingResourceFails() {
+	r := &http.Request{Host: "domain.io"}
 	ctx := context.Background()
-	authzEndpoint, err := config.GetKeycloakEndpointAuthzResourceset(&http.Request{Host: "domain.io"})
+	authzEndpoint, err := configuration.GetKeycloakEndpointAuthzResourceset(r)
 	require.Nil(s.T(), err)
 	pat := getProtectedAPITokenOK(s.T())
 	err = auth.DeleteResource(ctx, uuid.NewV4().String(), authzEndpoint, pat)
@@ -109,7 +111,8 @@ func (s *TestAuthSuite) TestDeletePolicyOK() {
 }
 
 func (s *TestAuthSuite) TestCreateAndDeletePermissionOK() {
-	authzEndpoint, err := config.GetKeycloakEndpointAuthzResourceset(&http.Request{Host: "domain.io"})
+	r := &http.Request{Host: "domain.io"}
+	authzEndpoint, err := configuration.GetKeycloakEndpointAuthzResourceset(r)
 	require.Nil(s.T(), err)
 
 	ctx := context.Background()
@@ -140,8 +143,9 @@ func (s *TestAuthSuite) TestCreateAndDeletePermissionOK() {
 }
 
 func (s *TestAuthSuite) TestDeleteNonexistingPolicyAndPermissionFails() {
+	r := &http.Request{Host: "domain.io"}
 	ctx := context.Background()
-	clientsEndpoint, err := config.GetKeycloakEndpointClients(&http.Request{Host: "domain.io"})
+	clientsEndpoint, err := configuration.GetKeycloakEndpointClients(r)
 	require.Nil(s.T(), err)
 	pat := getProtectedAPITokenOK(s.T())
 	clientId, _ := getClientIDAndEndpoint(s.T())
@@ -153,7 +157,8 @@ func (s *TestAuthSuite) TestDeleteNonexistingPolicyAndPermissionFails() {
 }
 
 func (s *TestAuthSuite) TestGetEntitlement() {
-	authzEndpoint, err := config.GetKeycloakEndpointAuthzResourceset(&http.Request{Host: "domain.io"})
+	r := &http.Request{Host: "domain.io"}
+	authzEndpoint, err := configuration.GetKeycloakEndpointAuthzResourceset(r)
 	require.Nil(s.T(), err)
 
 	ctx := context.Background()
@@ -345,6 +350,7 @@ type policyRequestResultPayload struct {
 }
 
 func cleanKeycloakResources(t *testing.T) {
+	r := &http.Request{Host: "domain.io"}
 	ctx := context.Background()
 	authzEndpoint, err := config.GetKeycloakEndpointAuthzResourceset(&http.Request{Host: "domain.io"})
 	require.Nil(t, err)
@@ -387,6 +393,7 @@ func cleanKeycloakResources(t *testing.T) {
 }
 
 func createResource(t *testing.T, ctx context.Context, pat string) (string, string) {
+	r := &http.Request{Host: "domain.io"}
 	uri := "testResourceURI"
 	kcResource := auth.KeycloakResource{
 		Name:   "test-" + uuid.NewV4().String(),
@@ -447,7 +454,7 @@ func validatePolicy(t *testing.T, ctx context.Context, clientsEndpoint string, c
 
 func getUserID(t *testing.T, username string, usersecret string) string {
 	r := &http.Request{Host: "domain.io"}
-	tokenEndpoint, err := config.GetKeycloakEndpointToken(r)
+	tokenEndpoint, err := configuration.GetKeycloakEndpointToken(r)
 	require.Nil(t, err)
 	userinfoEndpoint, err := config.GetKeycloakEndpointUserInfo(r)
 	require.Nil(t, err)
@@ -471,7 +478,7 @@ func getUserID(t *testing.T, username string, usersecret string) string {
 
 func getClientIDAndEndpoint(t *testing.T) (string, string) {
 	r := &http.Request{Host: "domain.io"}
-	clientsEndpoint, err := config.GetKeycloakEndpointClients(r)
+	clientsEndpoint, err := configuration.GetKeycloakEndpointClients(r)
 	require.Nil(t, err)
 	publicClientID := config.GetKeycloakClientID()
 	require.Nil(t, err)
@@ -484,7 +491,7 @@ func getClientIDAndEndpoint(t *testing.T) (string, string) {
 
 func getProtectedAPITokenOK(t *testing.T) string {
 	r := &http.Request{Host: "demo.api.openshift.io"}
-	endpoint, err := config.GetKeycloakEndpointToken(r)
+	endpoint, err := configuration.GetKeycloakEndpointToken(r)
 	require.Nil(t, err)
 	token, err := auth.GetProtectedAPIToken(context.Background(), endpoint, config.GetKeycloakClientID(), config.GetKeycloakSecret())
 	require.Nil(t, err)

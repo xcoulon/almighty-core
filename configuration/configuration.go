@@ -841,7 +841,7 @@ func (c *ConfigurationData) GetValidRedirectURLs(req *http.Request) (string, err
 }
 
 func (c *ConfigurationData) checkLocalhostRedirectException(req *http.Request) (string, error) {
-	if req == nil || req.URL == nil {
+	if req.URL == nil {
 		return DefaultValidRedirectURLs, nil
 	}
 	matched, err := regexp.MatchString(localhostRedirectException, req.URL.String())

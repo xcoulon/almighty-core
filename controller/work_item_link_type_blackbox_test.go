@@ -326,7 +326,8 @@ func createWorkItemLinkTypeInRepo(t *testing.T, db application.DB, ctx context.C
 		if err != nil {
 			return err
 		}
-		appLinkTypeResult = ConvertWorkItemLinkTypeFromModel(&http.Request{Host: "domain.io"}, *createdModelLinkType)
+		r := &http.Request{Host: "domain.io"}
+		appLinkTypeResult = ConvertWorkItemLinkTypeFromModel(r, *createdModelLinkType)
 		return nil
 	})
 	require.Nil(t, err)
