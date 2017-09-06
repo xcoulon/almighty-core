@@ -55,9 +55,9 @@ func NewJWTAuthMiddleware(db application.DB) *ginjwt.GinJWTMiddleware {
 		// Note that the payload is not encrypted.
 		// The attributes mentioned on jwt.io can't be used as keys for the map.
 		// Optional, by default no additional data will be set.
-		PayloadFunc: NewPayloadFunc(),
+		// PayloadFunc: NewPayloadFunc(),
 
-		// Authorizator: NewAuthorizatorHandler(db),
+		Authorizator: NewAuthorizationHandler(db),
 		Unauthorized: NewUnauthorizedHandler(),
 		// TokenLookup is a string in the form of "<source>:<name>" that is used
 		// to extract token from the request.
@@ -98,13 +98,13 @@ func NewIdentityHandler() func(jwt.MapClaims) string {
 // This handler checks that the given userID corresponds to a valid identity in the DB.
 func NewAuthorizationHandler(db application.DB) func(string, *gin.Context) bool {
 	return func(userID string, ctx *gin.Context) bool {
-		log.Info(ctx, map[string]interface{}{"userID": userID}, "authenticating user...")
+		log.Info(ctx, map[string]interface{}{"userID": userID}, "authorizing user...")
 		err := db.Identities().CheckExists(ctx, userID)
 		if err != nil {
-			log.Error(ctx, map[string]interface{}{"userID": userID}, "user NOT authorized")
+			log.Error(ctx, map[string]interface{}{"userID": userID}, "user is NOT authorized")
 			return false
 		}
-		log.Info(ctx, map[string]interface{}{"userID": userID}, "user authorized")
+		log.Info(ctx, map[string]interface{}{"userID": userID}, "user is authorized")
 		ctx.Set(USER_ID, userID)
 		return true
 	}
@@ -140,7 +140,7 @@ func NewPayloadFunc() func(userID string) map[string]interface{} {
 //NewUnauthorizedHandler initializes the unauthorized handler of the JWT Auth middleware
 func NewUnauthorizedHandler() func(*gin.Context, int, string) {
 	return func(ctx *gin.Context, status int, message string) {
-		log.Info(ctx, map[string]interface{}{"status": status, "message": message}, "user not unauthorized")
+		log.Info(ctx, map[string]interface{}{"status": status, "message": message}, "user not authorized")
 		ctx.Status(status)
 		ctx.Header("Content-Type", jsonapi.MediaType)
 		jsonapi.MarshalErrors(ctx.Writer, []*jsonapi.ErrorObject{{

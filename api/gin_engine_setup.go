@@ -31,7 +31,7 @@ func NewGinEngine(appDB *gormapplication.GormDB, notificationChannel notificatio
 	authGroup.Use(authMiddleware.MiddlewareFunc())
 	// spaceAuthzService := authz.NewAuthzService(config, appDB)
 	// authGroup.Use(authz.AuthzServiceManager(spaceAuthzService))
-	authGroup.GET("/refresh_token", authMiddleware.RefreshHandler)
+	authGroup.GET("//api/refresh", authMiddleware.RefreshHandler)
 	authGroup.POST("/api/spaces/", spacesResource.Create)
 	authGroup.POST("/api/spaces/:spaceID/workitems", workitemsResource.Create)
 	authGroup.PATCH("/api/workitems/:workitemID", authz.NewWorkItemEditorAuthorizator(appDB, config), workitemsResource.Update)

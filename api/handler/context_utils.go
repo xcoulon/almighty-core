@@ -46,6 +46,7 @@ func Created(ctx *gin.Context, result interface{}, location string) {
 	ctx.Header("Location", location)
 	if err := jsonapi.MarshalPayload(ctx.Writer, result); err != nil {
 		contextutils.AbortWithError(ctx, err)
+		return
 	}
 }
 
@@ -70,6 +71,7 @@ func GetParamAsInt(ctx *gin.Context, key string) (*int, error) {
 	intValue, err := strconv.Atoi(value)
 	if err != nil {
 		ctx.AbortWithError(http.StatusBadRequest, errors.NewBadParameterError(fmt.Sprintf("request parameter '%s' is not a valid integer", key), value))
+		return nil, err
 	}
 	return &intValue, err
 }
@@ -85,6 +87,7 @@ func GetParamAsUUID(ctx *gin.Context, key string) (*uuid.UUID, error) {
 	uuidValue, err := uuid.FromString(ctx.Param(key))
 	if err != nil {
 		ctx.AbortWithError(http.StatusBadRequest, errors.NewBadParameterError(fmt.Sprintf("request parameter '%s' is not a valid UUID", key), value))
+		return nil, err
 	}
 	return &uuidValue, err
 }
@@ -110,6 +113,7 @@ func GetQueryParamAsInt(ctx *gin.Context, key string) (*int, error) {
 	intValue, err := strconv.Atoi(value)
 	if err != nil {
 		ctx.AbortWithError(http.StatusBadRequest, errors.NewBadParameterError(fmt.Sprintf("request parameter '%s' is not a valid integer", key), value))
+		return nil, err
 	}
 	return &intValue, err
 }
@@ -140,6 +144,7 @@ func GetQueryParamAsBool(ctx *gin.Context, key string) (*bool, error) {
 	boolValue, err := strconv.ParseBool(ctx.Param(key))
 	if err != nil {
 		ctx.AbortWithError(http.StatusBadRequest, errors.NewBadParameterError(fmt.Sprintf("query parameter '%s' is not a valid boolean", key), value))
+		return nil, err
 	}
 	return &boolValue, err
 }

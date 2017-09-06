@@ -135,7 +135,7 @@ var _ = Describe("WorkItems", func() {
 			})
 		})
 
-		Context("Update Work Item", func() {
+		Context("Update WorkItem", func() {
 
 			var createdWorkItem workitem.WorkItem
 
@@ -177,7 +177,7 @@ var _ = Describe("WorkItems", func() {
 				assert.Equal(GinkgoT(), "Updated title", *responseItem.Title)
 			})
 
-			Specify("Update WorkItem OK - space editor", func() {
+			Specify("Update WorkItem KO - not a space collaborator", func() {
 				// given
 				payloadWI := model.ConvertWorkItemToModel(createdWorkItem)
 				updatedTitle := "Updated title"
@@ -190,13 +190,7 @@ var _ = Describe("WorkItems", func() {
 				// when
 				rr := Execute(s.GinkgoTestSuite, r)
 				// then
-				assert.Equal(GinkgoT(), http.StatusOK, rr.Code)
-				responseItem := model.WorkItem{}
-				GinkgoT().Logf("Response body:\n%s", rr.Body.String())
-				err = jsonapi.UnmarshalPayload(rr.Body, &responseItem)
-				require.Nil(GinkgoT(), err)
-				assert.NotNil(GinkgoT(), responseItem.ID)
-				assert.Equal(GinkgoT(), "Updated title", *responseItem.Title)
+				assert.Equal(GinkgoT(), http.StatusForbidden, rr.Code)
 			})
 
 			Specify("Update WorkItem KO - invalid credentials", func() {
@@ -209,11 +203,11 @@ var _ = Describe("WorkItems", func() {
 				require.Nil(GinkgoT(), err)
 				r, _ := http.NewRequest(http.MethodPatch, fmt.Sprintf("/api/workitems/%[1]s", createdWorkItem.ID.String()), payload)
 				// generate an invalid auth token
-				r.Header.Set("Authorization", "Bearer "+makeTokenString("HS256", "foo", nil))
+				r.Header.Set("Authorization", "Bearer "+makeTokenString("RS256", "foo", nil))
 				// when
 				rr := Execute(s.GinkgoTestSuite, r)
 				// then
-				assert.Equal(GinkgoT(), http.StatusForbidden, rr.Code)
+				assert.Equal(GinkgoT(), http.StatusUnauthorized, rr.Code)
 			})
 		})
 

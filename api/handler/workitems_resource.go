@@ -165,14 +165,14 @@ func (r WorkItemsResource) List(ctx *gin.Context) {
 		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(string(*listCtx.IterationFilter))))
 		additionalQuery = append(additionalQuery, "filter[iteration]="+*listCtx.IterationFilter)
 		// Update filter by adding child iterations if any
-		application.Transactional(r.db, func(tx application.Application) error {
+		err := application.Transactional(r.db, func(tx application.Application) error {
 			iterationUUID, err := uuid.FromString(*listCtx.IterationFilter)
 			if err != nil {
-				contextutils.AbortWithError(ctx, errors.NewBadParameterError("iterationID", err))
+				return errors.NewBadParameterError("iterationID", err)
 			}
 			childrens, err := tx.Iterations().LoadChildren(ctx, iterationUUID)
 			if err != nil {
-				contextutils.AbortWithError(ctx, errors.NewInternalError(ctx, err))
+				return errors.NewInternalError(ctx, err)
 			}
 			for _, child := range childrens {
 				childIDStr := child.ID.String()
@@ -181,6 +181,10 @@ func (r WorkItemsResource) List(ctx *gin.Context) {
 			}
 			return nil
 		})
+		if err != nil {
+			contextutils.AbortWithError(ctx, err)
+			return
+		}
 	}
 	if listCtx.WorkitemTypeFilter != nil {
 		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal([]uuid.UUID{*listCtx.WorkitemTypeFilter})))
@@ -202,6 +206,7 @@ func (r WorkItemsResource) List(ctx *gin.Context) {
 	workitems, totalCount, err := r.db.WorkItems().List(ctx, listCtx.SpaceID, exp, listCtx.ParentExistsFilter, listCtx.PageOffset, listCtx.PageLimit)
 	if err != nil {
 		contextutils.AbortWithError(ctx, err)
+		return
 	}
 	listCtx.ConditionalEntities(workitems, r.config.GetCacheControlWorkItems, func() {
 		// hasChildren := workItemIncludeHasChildren(tx, ctx)
@@ -215,6 +220,7 @@ func (r WorkItemsResource) List(ctx *gin.Context) {
 		payload, ok := p.(*jsonapi.ManyPayload)
 		if !ok {
 			contextutils.AbortWithError(ctx, err)
+			return
 		}
 		payload.Meta = &jsonapi.Meta{
 			"total-count": totalCount,
@@ -312,10 +318,12 @@ func (r WorkItemsResource) Create(ctx *gin.Context) {
 	fields[workitem.SystemState] = *payloadWI.State
 	if createCtx.WorkItem.Type == nil {
 		contextutils.AbortWithError(ctx, errors.NewBadParameterError("type", err))
+		return
 	}
 	wiType, err := uuid.FromString(createCtx.WorkItem.Type.ID)
 	if err != nil {
 		contextutils.AbortWithError(ctx, errors.NewBadParameterError("type", err))
+		return
 	}
 	// creatorID, _ := uuid.FromString("e1e9b60a-0c8d-4450-83d3-b2dc44a8bc1c")
 	creatorID, _ := authz.GetUserID(ctx)
@@ -381,7 +389,6 @@ func (r WorkItemsResource) Update(ctx *gin.Context) {
 		wi.Type = oldType
 		wi, err = r.db.WorkItems().Save(ctx, wi.SpaceID, *wi, *currentUserID)
 		if err != nil {
-			contextutils.AbortWithError(ctx, err)
 			return err
 		}
 
@@ -398,6 +405,10 @@ func (r WorkItemsResource) Update(ctx *gin.Context) {
 		updateCtx.OK(result)
 		return nil
 	})
+	if err != nil {
+		contextutils.AbortWithError(ctx, err)
+		return
+	}
 	if err == nil && r.notificationChannel != nil {
 		r.notificationChannel.Send(ctx, notification.NewWorkItemUpdated(wi.ID.String()))
 	}

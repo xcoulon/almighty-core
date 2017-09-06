@@ -128,10 +128,12 @@ func (r SpacesResource) Create(ctx *gin.Context) {
 		}
 
 		// Similar to above, we create a root iteration for this new space
+		userActive := false
 		newIteration := iteration.Iteration{
-			ID:      uuid.NewV4(),
-			SpaceID: createdSpace.ID,
-			Name:    createdSpace.Name,
+			ID:         uuid.NewV4(),
+			SpaceID:    createdSpace.ID,
+			Name:       createdSpace.Name,
+			UserActive: &userActive,
 		}
 		err = appl.Iterations().Create(ctx, &newIteration)
 		if err != nil {
@@ -172,6 +174,7 @@ func (r SpacesResource) Create(ctx *gin.Context) {
 	ctx.Header("Location", location)
 	if err := jsonapi.MarshalPayload(ctx.Writer, &result); err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, errs.Wrapf(err, "error while writing response after creating space with id '%s'", spaceID.String()))
+		return
 	}
 }
 
@@ -243,5 +246,6 @@ func (r SpacesResource) List(ctx *gin.Context) {
 	ctx.Header("Content-Type", jsonapi.MediaType)
 	if err := json.NewEncoder(ctx.Writer).Encode(payload); err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, errs.Wrapf(err, "Error while fetching the spaces"))
+		return
 	}
 }

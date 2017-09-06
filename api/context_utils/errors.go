@@ -1,6 +1,7 @@
 package context
 
 import (
+	"bytes"
 	"net/http"
 	"strconv"
 
@@ -16,11 +17,12 @@ func AbortWithError(ctx *gin.Context, err error) {
 	status := getHTTPStatus(err)
 	log.Error(ctx, map[string]interface{}{"status": status, "error": err.Error()}, "Aborting context after error occurred")
 	ctx.Header("Content-Type", jsonapi.MediaType)
-	jsonapi.MarshalErrors(ctx.Writer, []*jsonapi.ErrorObject{{
+	jsonResponse := bytes.NewBuffer(make([]byte, 0))
+	jsonapi.MarshalErrors(jsonResponse, []*jsonapi.ErrorObject{{
 		Status: strconv.Itoa(status),
 		Meta:   &map[string]interface{}{"error": err.Error()},
 	}})
-	ctx.AbortWithStatus(status)
+	ctx.AbortWithStatusJSON(status, jsonResponse.String())
 }
 
 // getHTTPStatus gets the HTTP response status for the given error
@@ -30,6 +32,10 @@ func getHTTPStatus(err error) int {
 		return http.StatusBadRequest
 	case errors.NotFoundError:
 		return http.StatusNotFound
+	case errors.UnauthorizedError:
+		return http.StatusUnauthorized
+	case errors.ForbiddenError:
+		return http.StatusForbidden
 	default:
 		// see if the underlying cause error was wrapped
 		cause := errs.Cause(err)
