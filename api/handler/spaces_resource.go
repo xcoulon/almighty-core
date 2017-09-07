@@ -13,7 +13,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/iteration"
-	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/gin-gonic/gin"
@@ -173,11 +172,6 @@ func (r SpacesResource) Create(ctx *gin.Context) {
 
 //Show shows a space resource by its ID
 func (r SpacesResource) Show(ctx *gin.Context) {
-	_, err := login.ContextIdentity(ctx)
-	if err != nil {
-		ctx.AbortWithError(http.StatusUnauthorized, err)
-		return
-	}
 	spaceID, err := uuid.FromString(ctx.Param("spaceID"))
 	if err != nil {
 		contextutils.AbortWithError(ctx, errs.Wrapf(err, "the space ID is not a valid UUID"))
@@ -207,10 +201,6 @@ func (r SpacesResource) Show(ctx *gin.Context) {
 
 // List runs the list action.
 func (r SpacesResource) List(ctx *gin.Context) {
-	_, err := login.ContextIdentity(ctx)
-	if err != nil {
-		ctx.AbortWithError(http.StatusUnauthorized, err)
-	}
 	pageNumber := GetQueryParamAsString(ctx, "page[number]")
 	pageLimit, err := GetQueryParamAsInt(ctx, "page[limit]")
 	offset, limit := computePagingLimits(pageNumber, pageLimit)
