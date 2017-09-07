@@ -17,8 +17,7 @@ import (
 
 //WorkItem the WorkItem type of resource to (un)marshall in the JSON-API requests/responses
 type WorkItem struct {
-	ID                string `jsonapi:"primary,workitems"`
-	SpaceID           string
+	ID                string        `jsonapi:"primary,workitems"`
 	Version           int           `jsonapi:"attr,version"`
 	Title             *string       `jsonapi:"attr,system.title"`
 	State             *string       `jsonapi:"attr,system.state"`
@@ -35,6 +34,7 @@ type WorkItem struct {
 	CodeBase          *string       `jsonapi:"attr,system.codebase"`
 	Type              *WorkItemType `jsonapi:"relation,baseType"`  // 'relation' fields must be pointers
 	Assignees         *WorkItemType `jsonapi:"relation,assignees"` // 'relation' fields must be pointers
+	SpaceID           string
 }
 
 // ConvertWorkItemToModel converts the given WorkItem to the given model representation

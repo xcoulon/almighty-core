@@ -80,26 +80,6 @@ func authorizeWorkitemEditor(ctx *gin.Context, appDB *gormapplication.GormDB, en
 		return false, errors.NewUnauthorizedError(fmt.Sprintf("invalid token claims type: %T", tokenPayload))
 	}
 
-	// jwttoken := goajwt.ContextJWT(ctx)
-	// tm := tokencontext.ReadTokenManagerFromContext(ctx)
-	// if tm == nil {
-	// 	log.Error(ctx, map[string]interface{}{
-	// 		"token": tm,
-	// 	}, "missing token manager")
-	// 	return false, errors.NewInternalError(ctx, errs.New("missing token manager"))
-	// }
-	// tokenWithClaims, err := jwt.ParseWithClaims(jwttoken.Raw, &auth.TokenPayload{}, func(t *jwt.Token) (interface{}, error) {
-	// 	return tm.(token.Manager).PublicKey(), nil
-	// })
-	// if err != nil {
-	// 	log.Error(ctx, map[string]interface{}{
-	// 		"space_id": spaceID,
-	// 		"err":      err,
-	// 	}, "unable to parse the rpt token")
-	// 	return false, errors.NewInternalError(ctx, errs.Wrap(err, "unable to parse the rpt token"))
-	// }
-	// claims := tokenWithClaims.Claims.(*auth.TokenPayload)
-
 	// Check if the token was issued before the space resouces changed the last time.
 	// If so, we need to re-fetch the rpt token for that space/resource and check permissions.
 	outdated, err := isTokenOutdated(ctx, appDB, &claims, entitlementEndpoint, spaceID)

@@ -67,13 +67,6 @@ func NewSpacesResourceCreateContext(ctx *gin.Context) (*SpacesResourceCreateCont
 	}, nil
 }
 
-const (
-	// APIStringTypeCodebase contains the JSON API type for codebases
-	spaceResourceType = "space"
-)
-
-var scopes = []string{"read:space", "admin:space"}
-
 // Create handles the space creation requests
 func (r SpacesResource) Create(ctx *gin.Context) {
 	createCtx, err := NewSpacesResourceCreateContext(ctx)
@@ -178,8 +171,13 @@ func (r SpacesResource) Create(ctx *gin.Context) {
 	}
 }
 
-//GetByID gets a space resource by its ID
-func (r SpacesResource) GetByID(ctx *gin.Context) {
+//Show shows a space resource by its ID
+func (r SpacesResource) Show(ctx *gin.Context) {
+	_, err := login.ContextIdentity(ctx)
+	if err != nil {
+		ctx.AbortWithError(http.StatusUnauthorized, err)
+		return
+	}
 	spaceID, err := uuid.FromString(ctx.Param("spaceID"))
 	if err != nil {
 		contextutils.AbortWithError(ctx, errs.Wrapf(err, "the space ID is not a valid UUID"))
@@ -203,6 +201,7 @@ func (r SpacesResource) GetByID(ctx *gin.Context) {
 	ctx.Header("Content-Type", jsonapi.MediaType)
 	if err := jsonapi.MarshalPayload(ctx.Writer, &result); err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, errs.Wrapf(err, "error while fetching the space with id=%s", spaceID.String()))
+		return
 	}
 }
 

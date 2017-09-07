@@ -57,8 +57,8 @@ func NewJWTAuthMiddleware(db application.DB) *ginjwt.GinJWTMiddleware {
 		// Optional, by default no additional data will be set.
 		// PayloadFunc: NewPayloadFunc(),
 
-		Authorizator: NewAuthorizationHandler(db),
-		Unauthorized: NewUnauthorizedHandler(),
+		Authorizator: NewCheckUserExistsCallback(db),
+		Unauthorized: NewUnauthorizedCallback(),
 		// TokenLookup is a string in the form of "<source>:<name>" that is used
 		// to extract token from the request.
 		// Optional. Default value "header:Authorization".
@@ -94,9 +94,9 @@ func NewIdentityHandler() func(jwt.MapClaims) string {
 	}
 }
 
-// NewAuthorizationHandler initializes the authorizator handler of the JWT Auth middleware
+// NewUserExistsVerifier initializes the authorizator handler of the JWT Auth middleware
 // This handler checks that the given userID corresponds to a valid identity in the DB.
-func NewAuthorizationHandler(db application.DB) func(string, *gin.Context) bool {
+func NewCheckUserExistsCallback(db application.DB) func(string, *gin.Context) bool {
 	return func(userID string, ctx *gin.Context) bool {
 		log.Info(ctx, map[string]interface{}{"userID": userID}, "authorizing user...")
 		err := db.Identities().CheckExists(ctx, userID)
@@ -110,35 +110,8 @@ func NewAuthorizationHandler(db application.DB) func(string, *gin.Context) bool 
 	}
 }
 
-// NewPayloadFunc is a callback function that will be called during login.
-// Using this function it is possible to add additional payload data to the webtoken.
-// The data is then made available during requests via c.Get("JWT_PAYLOAD").
-// Note that the payload is not encrypted.
-// The attributes mentioned on jwt.io can't be used as keys for the map.
-func NewPayloadFunc() func(userID string) map[string]interface{} {
-	return func(userID string) map[string]interface{} {
-		// TODO: during login, request the authorizations from KC for the given user
-		return nil
-	}
-}
-
-// NewAuthorizatorHandler initializes the authorizator handler of the JWT Auth middleware
-// func NewAuthorizatorHandler(db application.DB) func(string, *gin.Context) bool {
-// 	return func(userID string, ctx *gin.Context) bool {
-// 		log.Debug(ctx, map[string]interface{}{"userID": userID}, "authorizing user...")
-// 		err := db.Identities().CheckExists(ctx, userID)
-// 		if err != nil {
-// 			log.Error(ctx, map[string]interface{}{"userID": userID}, "user NOT authorized")
-// 			return false
-// 		}
-// 		log.Debug(ctx, map[string]interface{}{"userID": userID}, "user authorized")
-// 		ctx.Set(USER_ID, userID)
-// 		return true
-// 	}
-// }
-
-//NewUnauthorizedHandler initializes the unauthorized handler of the JWT Auth middleware
-func NewUnauthorizedHandler() func(*gin.Context, int, string) {
+//NewUnauthorizedCallback initializes the unauthorized handler of the JWT Auth middleware
+func NewUnauthorizedCallback() func(*gin.Context, int, string) {
 	return func(ctx *gin.Context, status int, message string) {
 		log.Info(ctx, map[string]interface{}{"status": status, "message": message}, "user not authorized")
 		ctx.Status(status)
