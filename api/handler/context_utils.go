@@ -148,3 +148,5 @@ func GetQueryParamAsBool(ctx *gin.Context, key string) (*bool, error) {
 	}
 	return &boolValue, err
 }
+
+
