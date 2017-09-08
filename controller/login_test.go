@@ -44,7 +44,7 @@ func TestRunLoginREST(t *testing.T) {
 func (rest *TestLoginREST) SetupTest() {
 	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
-	rest.configuration = configuration.Get()
+	rest.configuration = configuration.LoadDefault()
 	rest.loginService = rest.newTestKeycloakOAuthProvider(rest.db)
 }
 
@@ -53,14 +53,14 @@ func (rest *TestLoginREST) TearDownTest() {
 }
 
 func (rest *TestLoginREST) UnSecuredController() (*goa.Service, *LoginController) {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	identityRepository := account.NewIdentityRepository(rest.DB)
 	svc := testsupport.ServiceAsUser("Login-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	return svc, &LoginController{Controller: svc.NewController("login"), auth: TestLoginService{}, configuration: rest.Configuration, identityRepository: identityRepository}
 }
 
 func (rest *TestLoginREST) SecuredController() (*goa.Service, *LoginController) {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 
 	identityRepository := account.NewIdentityRepository(rest.DB)
 

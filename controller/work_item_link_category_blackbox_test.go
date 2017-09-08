@@ -9,7 +9,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/application"
-	config "github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/configuration"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/jsonapi"
@@ -48,10 +48,10 @@ type workItemLinkCategorySuite struct {
 	svc         *goa.Service
 }
 
-var wilCatConfiguration *config.ConfigurationData
+var wilCatConfiguration *configuration.ConfigurationData
 
 func init() {
-	wilCatConfiguration = config.Get()
+	wilCatConfiguration = configuration.LoadDefault()
 }
 
 // The SetupSuite method will run before the tests in the suite are run.
@@ -61,7 +61,7 @@ func (s *workItemLinkCategorySuite) SetupSuite() {
 	s.db, err = gorm.Open("postgres", wilCatConfiguration.GetPostgresConfigString())
 	require.Nil(s.T(), err)
 	s.appDB = gormapplication.NewGormDB(s.db)
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	require.NotNil(s.T(), s.svc)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.db))

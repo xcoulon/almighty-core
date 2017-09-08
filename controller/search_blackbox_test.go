@@ -14,7 +14,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/app/test"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/auth"
-	config "github.com/fabric8-services/fabric8-wit/configuration"
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
 	"github.com/fabric8-services/fabric8-wit/gormsupport/cleaner"
@@ -47,15 +46,14 @@ func TestRunSearchTests(t *testing.T) {
 
 type searchBlackBoxTest struct {
 	gormtestsupport.DBTestSuite
-	db                             *gormapplication.GormDB
-	svc                            *goa.Service
-	clean                          func()
-	testIdentity                   account.Identity
-	wiRepo                         *workitem.GormWorkItemRepository
-	controller                     *SearchController
-	spaceBlackBoxTestConfiguration *config.ConfigurationData
-	ctx                            context.Context
-	testDir                        string
+	db           *gormapplication.GormDB
+	svc          *goa.Service
+	clean        func()
+	testIdentity account.Identity
+	wiRepo       *workitem.GormWorkItemRepository
+	controller   *SearchController
+	ctx          context.Context
+	testDir      string
 }
 
 func (s *searchBlackBoxTest) SetupSuite() {
@@ -75,11 +73,9 @@ func (s *searchBlackBoxTest) SetupTest() {
 	s.testIdentity = *testIdentity
 
 	s.wiRepo = workitem.NewWorkItemRepository(s.DB)
-	spaceBlackBoxTestConfiguration := config.Get()
-	s.spaceBlackBoxTestConfiguration = spaceBlackBoxTestConfiguration
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", wittoken.NewManagerWithPrivateKey(priv), s.testIdentity)
-	s.controller = NewSearchController(s.svc, gormapplication.NewGormDB(s.DB), spaceBlackBoxTestConfiguration)
+	s.controller = NewSearchController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 }
 
 func (s *searchBlackBoxTest) TearDownTest() {
@@ -287,7 +283,7 @@ func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemsPayload {
 }
 
 func getServiceAsUser(testIdentity account.Identity) *goa.Service {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	service := testsupport.ServiceAsUser("TestSearch-Service", wittoken.NewManagerWithPrivateKey(priv), testIdentity)
 	return service
 }
@@ -548,7 +544,7 @@ func (s *searchBlackBoxTest) TestSearchQueryScenarioDriven() {
 	spaceInstance := CreateSecuredSpace(s.T(), gormapplication.NewGormDB(s.DB), s.Configuration, *spaceOwner)
 	spaceIDStr := spaceInstance.ID.String()
 
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	svcWithSpaceOwner := testsupport.ServiceAsSpaceUser("Search-Service", wittoken.NewManagerWithPrivateKey(priv), *spaceOwner, &TestSpaceAuthzService{*spaceOwner})
 	collaboratorRESTInstance := &TestCollaboratorsREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")}
 	collaboratorRESTInstance.policy = &auth.KeycloakPolicy{

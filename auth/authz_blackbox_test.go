@@ -34,7 +34,10 @@ var (
 
 func init() {
 	var err error
-	config = configuration.Get()
+	config, err = configuration.GetConfigurationData()
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
 	publicKey, err = config.GetTokenPublicKey()
 	if err != nil {
 		panic(fmt.Errorf("Failed to parse the public key: %s", err.Error()))
@@ -60,7 +63,7 @@ func (s *TestAuthSuite) TearDownSuite() {
 func (s *TestAuthSuite) TestCreateAndDeleteResourceOK() {
 	r := &http.Request{Host: "domain.io"}
 	ctx := context.Background()
-	authzEndpoint, err := config.GetKeycloakEndpointAuthzResourceset(&http.Request{Host: "domain.io"})
+	authzEndpoint, err := config.GetKeycloakEndpointAuthzResourceset(r)
 	require.Nil(s.T(), err)
 	pat := getProtectedAPITokenOK(s.T())
 
@@ -71,7 +74,7 @@ func (s *TestAuthSuite) TestCreateAndDeleteResourceOK() {
 func (s *TestAuthSuite) TestDeleteNonexistingResourceFails() {
 	r := &http.Request{Host: "domain.io"}
 	ctx := context.Background()
-	authzEndpoint, err := configuration.GetKeycloakEndpointAuthzResourceset(r)
+	authzEndpoint, err := config.GetKeycloakEndpointAuthzResourceset(r)
 	require.Nil(s.T(), err)
 	pat := getProtectedAPITokenOK(s.T())
 	err = auth.DeleteResource(ctx, uuid.NewV4().String(), authzEndpoint, pat)
@@ -112,7 +115,7 @@ func (s *TestAuthSuite) TestDeletePolicyOK() {
 
 func (s *TestAuthSuite) TestCreateAndDeletePermissionOK() {
 	r := &http.Request{Host: "domain.io"}
-	authzEndpoint, err := configuration.GetKeycloakEndpointAuthzResourceset(r)
+	authzEndpoint, err := config.GetKeycloakEndpointAuthzResourceset(r)
 	require.Nil(s.T(), err)
 
 	ctx := context.Background()
@@ -145,7 +148,7 @@ func (s *TestAuthSuite) TestCreateAndDeletePermissionOK() {
 func (s *TestAuthSuite) TestDeleteNonexistingPolicyAndPermissionFails() {
 	r := &http.Request{Host: "domain.io"}
 	ctx := context.Background()
-	clientsEndpoint, err := configuration.GetKeycloakEndpointClients(r)
+	clientsEndpoint, err := config.GetKeycloakEndpointClients(r)
 	require.Nil(s.T(), err)
 	pat := getProtectedAPITokenOK(s.T())
 	clientId, _ := getClientIDAndEndpoint(s.T())
@@ -158,7 +161,7 @@ func (s *TestAuthSuite) TestDeleteNonexistingPolicyAndPermissionFails() {
 
 func (s *TestAuthSuite) TestGetEntitlement() {
 	r := &http.Request{Host: "domain.io"}
-	authzEndpoint, err := configuration.GetKeycloakEndpointAuthzResourceset(r)
+	authzEndpoint, err := config.GetKeycloakEndpointAuthzResourceset(r)
 	require.Nil(s.T(), err)
 
 	ctx := context.Background()
@@ -187,9 +190,9 @@ func (s *TestAuthSuite) TestGetEntitlement() {
 	require.NotEqual(s.T(), "", permissionID)
 	defer deletePermission(s.T(), ctx, clientsEndpoint, clientId, permissionID, pat)
 
-	entitlementEndpoint, err := config.GetKeycloakEndpointEntitlement(&http.Request{Host: "domain.io"})
+	entitlementEndpoint, err := config.GetKeycloakEndpointEntitlement(r)
 	require.Nil(s.T(), err)
-	tokenEndpoint, err := config.GetKeycloakEndpointToken(&http.Request{Host: "domain.io"})
+	tokenEndpoint, err := config.GetKeycloakEndpointToken(r)
 	require.Nil(s.T(), err)
 	testUserToken, err := controller.GenerateUserToken(ctx, tokenEndpoint, config, config.GetKeycloakTestUserName(), config.GetKeycloakTestUserSecret())
 	// {"permissions" : [{"resource_set_name" : "<spaceID>"}]}
@@ -352,7 +355,7 @@ type policyRequestResultPayload struct {
 func cleanKeycloakResources(t *testing.T) {
 	r := &http.Request{Host: "domain.io"}
 	ctx := context.Background()
-	authzEndpoint, err := config.GetKeycloakEndpointAuthzResourceset(&http.Request{Host: "domain.io"})
+	authzEndpoint, err := config.GetKeycloakEndpointAuthzResourceset(r)
 	require.Nil(t, err)
 
 	clientId, clientsEndpoint := getClientIDAndEndpoint(t)
@@ -401,7 +404,7 @@ func createResource(t *testing.T, ctx context.Context, pat string) (string, stri
 		URI:    &uri,
 		Scopes: &scopes,
 	}
-	authzEndpoint, err := config.GetKeycloakEndpointAuthzResourceset(&http.Request{Host: "domain.io"})
+	authzEndpoint, err := config.GetKeycloakEndpointAuthzResourceset(r)
 	require.Nil(t, err)
 
 	id, err := auth.CreateResource(ctx, kcResource, authzEndpoint, pat)
@@ -454,7 +457,7 @@ func validatePolicy(t *testing.T, ctx context.Context, clientsEndpoint string, c
 
 func getUserID(t *testing.T, username string, usersecret string) string {
 	r := &http.Request{Host: "domain.io"}
-	tokenEndpoint, err := configuration.GetKeycloakEndpointToken(r)
+	tokenEndpoint, err := config.GetKeycloakEndpointToken(r)
 	require.Nil(t, err)
 	userinfoEndpoint, err := config.GetKeycloakEndpointUserInfo(r)
 	require.Nil(t, err)
@@ -478,7 +481,7 @@ func getUserID(t *testing.T, username string, usersecret string) string {
 
 func getClientIDAndEndpoint(t *testing.T) (string, string) {
 	r := &http.Request{Host: "domain.io"}
-	clientsEndpoint, err := configuration.GetKeycloakEndpointClients(r)
+	clientsEndpoint, err := config.GetKeycloakEndpointClients(r)
 	require.Nil(t, err)
 	publicClientID := config.GetKeycloakClientID()
 	require.Nil(t, err)
@@ -491,7 +494,7 @@ func getClientIDAndEndpoint(t *testing.T) (string, string) {
 
 func getProtectedAPITokenOK(t *testing.T) string {
 	r := &http.Request{Host: "demo.api.openshift.io"}
-	endpoint, err := configuration.GetKeycloakEndpointToken(r)
+	endpoint, err := config.GetKeycloakEndpointToken(r)
 	require.Nil(t, err)
 	token, err := auth.GetProtectedAPIToken(context.Background(), endpoint, config.GetKeycloakClientID(), config.GetKeycloakSecret())
 	require.Nil(t, err)

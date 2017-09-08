@@ -1,7 +1,6 @@
 package configuration_test
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -11,9 +10,7 @@ import (
 
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/fabric8-services/fabric8-auth/configuration"
-	. "github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -39,14 +36,8 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func resetConfiguration(configPath string) {
-	var err error
-
-	// calling NewConfigurationData("") is same as GetConfigurationData()
-	config, err = NewConfigurationData(configPath, false)
-	if err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
+func resetConfiguration(path string) {
+	config = configuration.LoadConfigurationFromPath(path, false, false)
 }
 
 func TestGetAuthEndpointSpacesDevModeOK(t *testing.T) {
@@ -196,11 +187,7 @@ func TestGetTokenPrivateKeyFromConfigFile(t *testing.T) {
 
 	resetConfiguration(defaultConfigFilePath)
 	// env variable NOT set, so we check with config.yaml's value
-
-	viperValue := config.GetTokenPrivateKey()
-	assert.NotNil(t, viperValue)
-
-	parsedKey, err := jwt.ParseRSAPrivateKeyFromPEM(viperValue)
+	parsedKey, err := config.GetTokenPrivateKey()
 	require.Nil(t, err)
 	assert.NotNil(t, parsedKey)
 }

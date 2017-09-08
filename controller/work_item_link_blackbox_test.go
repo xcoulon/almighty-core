@@ -97,7 +97,7 @@ func (s *workItemLinkSuite) SetupSuite() {
 // It will also make sure that some resources that we rely on do exists.
 func (s *workItemLinkSuite) SetupTest() {
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-	priv, err := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, err := wittoken.RSAPrivateKey()
 	require.Nil(s.T(), err)
 	svc := goa.New("TestWorkItemLinkType-Service")
 	require.NotNil(s.T(), svc)

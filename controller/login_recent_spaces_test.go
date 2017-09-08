@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/fabric8-services/fabric8-wit/configuration"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
 
 	"github.com/fabric8-services/fabric8-wit/account"
 	"github.com/fabric8-services/fabric8-wit/application"
-	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/gormtestsupport"
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/resource"
@@ -27,7 +27,7 @@ import (
 
 type TestRecentSpacesREST struct {
 	gormtestsupport.RemoteTestSuite
-	configuration      *configuration.ConfigurationData
+	config             *configuration.ConfigurationData
 	tokenManager       token.Manager
 	identityRepository *MockIdentityRepository
 	userRepository     *MockUserRepository
@@ -41,7 +41,7 @@ func TestRunRecentSpacesREST(t *testing.T) {
 }
 
 func (rest *TestRecentSpacesREST) newTestKeycloakOAuthProvider(db application.DB) *login.KeycloakOAuthProvider {
-	publicKey, err := rest.configuration.GetTokenPublicKey()
+	publicKey, err := rest.config.GetTokenPublicKey()
 	require.Nil(rest.T(), err)
 	tokenManager := token.NewManager(publicKey)
 
@@ -49,8 +49,8 @@ func (rest *TestRecentSpacesREST) newTestKeycloakOAuthProvider(db application.DB
 }
 
 func (rest *TestRecentSpacesREST) SetupTest() {
-	rest.configuration = configuration.Get()
-	publicKey, err := rest.configuration.GetTokenPublicKey()
+	rest.config = configuration.LoadDefault()
+	publicKey, err := rest.config.GetTokenPublicKey()
 	require.Nil(rest.T(), err)
 	rest.tokenManager = token.NewManager(publicKey)
 
@@ -77,7 +77,7 @@ func (rest *TestRecentSpacesREST) SecuredController() (*goa.Service, *LoginContr
 		Controller:         svc.NewController("login"),
 		auth:               rest.loginService,
 		tokenManager:       rest.tokenManager,
-		configuration:      rest.configuration,
+		configuration:      rest.config,
 		identityRepository: rest.identityRepository,
 	}
 	return svc, loginController
@@ -90,10 +90,10 @@ func (rest *TestRecentSpacesREST) TestResourceRequestPayload() {
 
 	// Generate an access token for a test identity
 	r := &http.Request{Host: "api.example.org"}
-	tokenEndpoint, err := rest.configuration.GetKeycloakEndpointToken(r)
+	tokenEndpoint, err := rest.config.GetKeycloakEndpointToken(r)
 	require.Nil(t, err)
 
-	accessToken, err := GenerateUserToken(service.Context, tokenEndpoint, rest.configuration, rest.configuration.GetKeycloakTestUserName(), rest.configuration.GetKeycloakTestUserSecret())
+	accessToken, err := GenerateUserToken(service.Context, tokenEndpoint, rest.config, rest.config.GetKeycloakTestUserName(), rest.config.GetKeycloakTestUserSecret())
 	require.Nil(t, err)
 
 	accessTokenString := accessToken.Token.AccessToken

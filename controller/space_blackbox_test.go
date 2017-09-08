@@ -42,7 +42,7 @@ func (m *DummyResourceManager) DeleteSpace(ctx context.Context, request *http.Re
 }
 
 func init() {
-	spaceConfiguration = configuration.Get()
+	spaceConfiguration = configuration.LoadDefault()
 }
 
 type TestSpaceREST struct {
@@ -68,7 +68,7 @@ func (rest *TestSpaceREST) TearDownTest() {
 }
 
 func (rest *TestSpaceREST) SecuredController(identity account.Identity) (*goa.Service, *SpaceController) {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 
 	svc := testsupport.ServiceAsUser("Space-Service", wittoken.NewManagerWithPrivateKey(priv), identity)
 	return svc, NewSpaceController(svc, rest.db, spaceConfiguration, &DummyResourceManager{})
@@ -130,13 +130,13 @@ func (rest *TestSpaceREST) TestSuccessCreateSpaceOK() {
 }
 
 func (rest *TestSpaceREST) SecuredSpaceAreaController(identity account.Identity) (*goa.Service, *SpaceAreasController) {
-	pub, _ := wittoken.ParsePublicKey([]byte(wittoken.RSAPublicKey))
+	pub, _ := wittoken.RSAPublicKey()
 	svc := testsupport.ServiceAsUser("Area-Service", wittoken.NewManager(pub), identity)
 	return svc, NewSpaceAreasController(svc, rest.db, rest.Configuration)
 }
 
 func (rest *TestSpaceREST) SecuredSpaceIterationController(identity account.Identity) (*goa.Service, *SpaceIterationsController) {
-	pub, _ := wittoken.ParsePublicKey([]byte(wittoken.RSAPublicKey))
+	pub, _ := wittoken.RSAPublicKey()
 	svc := testsupport.ServiceAsUser("Iteration-Service", wittoken.NewManager(pub), identity)
 	return svc, NewSpaceIterationsController(svc, rest.db, rest.Configuration)
 }

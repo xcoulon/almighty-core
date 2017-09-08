@@ -25,11 +25,11 @@ var VerifyKey *rsa.PublicKey
 
 func init() {
 	var err error
-	SigningKey, err = configuration.Get().GetTokenPrivateKey()
+	SigningKey, err = configuration.LoadDefault().GetTokenPrivateKey()
 	if err != nil {
 		log.Panic(nil, nil, "Unable to load private key: ", err.Error())
 	}
-	VerifyKey, err = configuration.Get().GetTokenPublicKey()
+	VerifyKey, err = configuration.LoadDefault().GetTokenPublicKey()
 	if err != nil {
 		log.Panic(nil, nil, "Unable to load public key: ", err.Error())
 	}
@@ -37,7 +37,7 @@ func init() {
 
 // NewJWTAuthMiddleware initialises the JWT auth middleware
 func NewJWTAuthMiddleware(db application.DB) *ginjwt.GinJWTMiddleware {
-	config := configuration.Get()
+	config := configuration.LoadDefault()
 	return &ginjwt.GinJWTMiddleware{
 		Realm: config.GetKeycloakRealm(),
 		// SignKey:    SigningKey, // will switch to public/private key once RSA256 is supported

@@ -1,7 +1,6 @@
 package configuration
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 	"regexp"
@@ -25,11 +24,7 @@ func init() {
 }
 
 func resetConfiguration() {
-	var err error
-	testConfig = Get()
-	if err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
+	config = LoadDefault()
 }
 
 func TestOpenIDConnectPathOK(t *testing.T) {
@@ -172,7 +167,7 @@ func TestRedirectURLsForLocalhostRequestAreExcepted(t *testing.T) {
 func validateRedirectURL(t *testing.T, request string, redirect string) bool {
 	req, err := http.NewRequest("", request, nil)
 	require.Nil(t, err)
-	whitelist, err := config.checkLocalhostRedirectException(r)
+	whitelist, err := config.checkLocalhostRedirectException(req)
 	require.Nil(t, err)
 
 	matched, err := regexp.MatchString(whitelist, redirect)

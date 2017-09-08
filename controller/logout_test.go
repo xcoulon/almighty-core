@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/fabric8-services/fabric8-wit/app/test"
-	config "github.com/fabric8-services/fabric8-wit/configuration"
+	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/login"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	testsupport "github.com/fabric8-services/fabric8-wit/test"
@@ -17,13 +17,13 @@ import (
 
 type TestLogoutREST struct {
 	suite.Suite
-	configuration *config.ConfigurationData
+	config *configuration.ConfigurationData
 }
 
 func TestRunLogoutREST(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	configuration := config.Get()
-	suite.Run(t, &TestLogoutREST{configuration: configuration})
+	config := configuration.LoadDefault()
+	suite.Run(t, &TestLogoutREST{config: config})
 }
 
 func (rest *TestLogoutREST) SetupTest() {
@@ -33,10 +33,10 @@ func (rest *TestLogoutREST) TearDownTest() {
 }
 
 func (rest *TestLogoutREST) UnSecuredController() (*goa.Service, *LogoutController) {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 
 	svc := testsupport.ServiceAsUser("Logout-Service", wittoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	return svc, &LogoutController{Controller: svc.NewController("logout"), logoutService: &login.KeycloakLogoutService{}, configuration: rest.configuration}
+	return svc, &LogoutController{Controller: svc.NewController("logout"), logoutService: &login.KeycloakLogoutService{}, configuration: rest.config}
 }
 
 func (rest *TestLogoutREST) TestLogoutRedirects() {

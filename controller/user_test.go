@@ -48,12 +48,12 @@ func (rest *TestUserREST) TestRunUserREST(t *testing.T) {
 }
 
 func (rest *TestUserREST) SetupSuite() {
-	config := configuration.Get()
+	config := configuration.LoadDefault()
 	rest.config = *config
 }
 
 func (rest *TestUserREST) newUserController(identity *account.Identity, user *account.User) *UserController {
-	priv, _ := wittoken.ParsePrivateKey([]byte(wittoken.RSAPrivateKey))
+	priv, _ := wittoken.RSAPrivateKey()
 	return NewUserController(goa.New("wit-test"), newGormTestBase(identity, user), wittoken.NewManagerWithPrivateKey(priv), &rest.config)
 }
 

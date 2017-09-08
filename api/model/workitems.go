@@ -137,7 +137,7 @@ func setupCodebase(appl application.Application, cb *codebase.Content, spaceID u
 
 // JSONAPILinks returns the links to the work item
 func (w WorkItem) JSONAPILinks() *jsonapi.Links {
-	config := configuration.Get()
+	config := configuration.LoadDefault()
 	return &jsonapi.Links{
 		"self": jsonapi.Link{
 			Href: fmt.Sprintf("%[1]s/api/workitems/%[2]s", config.GetAPIServiceURL(), w.ID),
@@ -147,7 +147,7 @@ func (w WorkItem) JSONAPILinks() *jsonapi.Links {
 
 //JSONAPIRelationshipLinks is invoked for each relationship defined on the WorkItem struct when marshalled
 func (w WorkItem) JSONAPIRelationshipLinks(relation string) *jsonapi.Links {
-	config := configuration.Get()
+	config := configuration.LoadDefault()
 	if relation == "baseType" {
 		return &jsonapi.Links{
 			"self": jsonapi.Link{

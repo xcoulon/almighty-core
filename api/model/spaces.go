@@ -18,7 +18,7 @@ type Space struct {
 
 // JSONAPILinks returns the links to the space
 func (s Space) JSONAPILinks() *jsonapi.Links {
-	config := configuration.Get()
+	config := configuration.LoadDefault()
 	return &jsonapi.Links{
 		"self": jsonapi.Link{
 			Href: fmt.Sprintf("%[1]s/api/spaces/%[2]s", config.GetAPIServiceURL(), s.ID),
@@ -28,7 +28,7 @@ func (s Space) JSONAPILinks() *jsonapi.Links {
 
 //JSONAPIRelationshipLinks is invoked for each relationship defined on the Space struct when marshaled
 func (s Space) JSONAPIRelationshipLinks(relation string) *jsonapi.Links {
-	config := configuration.Get()
+	config := configuration.LoadDefault()
 	if relation == "backlog" {
 		return &jsonapi.Links{
 			"related": jsonapi.Link{

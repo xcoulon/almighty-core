@@ -8,6 +8,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -15,7 +16,6 @@ import (
 	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/fabric8-services/fabric8-tenant/keycloak"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/spf13/viper"
 )
@@ -105,54 +105,54 @@ const (
 	varAPIServiceURL            = "api.serviceurl"
 )
 
-var config *ConfigurationData
-
 // ConfigurationData encapsulates the Viper configuration object which stores the configuration data in-memory.
 type ConfigurationData struct {
 	v               *viper.Viper
 	migrateDB       bool
-	tokenPublicKey  *rsa.PublicKey  // the public key is cached in the config once it has been loaded successfully
-	tokenPrivateKey *rsa.PrivateKey // the private key is cached in the config once it has been loaded successfully
+	tokenPublicKey  *rsa.PublicKey
+	tokenPrivateKey *rsa.PrivateKey
 }
 
-// Get gets the config, making sure it's loaded once and only once.
-func Get() *ConfigurationData {
+var loadConfigMutex sync.Mutex
+var config *ConfigurationData
+
+//LoadDefault loads the configuration once using the default config file or the one specified with the '-config' switch.
+// !! Will panic if an error occurs !!
+func LoadDefault() *ConfigurationData {
+	fmt.Printf("Loading default configuration\n")
+	loadConfigMutex.Lock()
+	defer loadConfigMutex.Unlock()
 	if config == nil {
-		config = Load()
+		var configFilePath string
+		var printConfig, migrateDB bool
+		flag.StringVar(&configFilePath, "config", "", "Path to the config file to read")
+		flag.BoolVar(&printConfig, "printConfig", false, "Prints the config (including merged environment variables) and exits")
+		flag.BoolVar(&migrateDB, "migrateDatabase", false, "Migrates the database to the newest version and exits.")
+
+		// Override default -config switch with environment variable only if -config switch was
+		// not explicitly given via the command line.
+		configSwitchIsSet := false
+		flag.Visit(func(f *flag.Flag) {
+			if f.Name == "config" {
+				configSwitchIsSet = true
+			}
+		})
+		if !configSwitchIsSet {
+			if envConfigPath, ok := os.LookupEnv("F8_CONFIG_FILE_PATH"); ok {
+				configFilePath = envConfigPath
+			}
+		}
+		LoadConfigurationFromPath(configFilePath, printConfig, migrateDB)
 	}
 	return config
 }
 
-//Load loads the configuration using the default config file or the one specified with the '-config' switch
+//LoadConfigurationFromPath loads the configuration once using the given config file
 // !! Will panic an error occurs !!
-func Load() *ConfigurationData {
-	// --------------------------------------------------------------------
-	// Parse flags
-	// --------------------------------------------------------------------
-	var configFilePath string
-	var printConfig bool
-	var migrateDB bool
-	// var scheduler *remoteworkitem.Scheduler
-	flag.StringVar(&configFilePath, "config", "", "Path to the config file to read")
-	flag.BoolVar(&printConfig, "printConfig", false, "Prints the config (including merged environment variables) and exits")
-	flag.BoolVar(&migrateDB, "migrateDatabase", false, "Migrates the database to the newest version and exits.")
-	// flag.Parse() // commented out because it prevents execution of tests with the ginkgo tool. See https://github.com/onsi/ginkgo/issues/296#issuecomment-249924522
-
-	// Override default -config switch with environment variable only if -config switch was
-	// not explicitly given via the command line.
-	configSwitchIsSet := false
-	flag.Visit(func(f *flag.Flag) {
-		if f.Name == "config" {
-			configSwitchIsSet = true
-		}
-	})
-	if !configSwitchIsSet {
-		if envConfigPath, ok := os.LookupEnv("F8_CONFIG_FILE_PATH"); ok {
-			configFilePath = envConfigPath
-		}
-	}
-
-	config, err := NewConfigurationData(configFilePath, migrateDB)
+func LoadConfigurationFromPath(configFilePath string, printConfig, migrateDB bool) *ConfigurationData {
+	fmt.Printf("Loading configuration from %s\n", configFilePath)
+	var err error
+	config, err = NewConfigurationData(configFilePath, migrateDB)
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
 			"config_file_path": configFilePath,
@@ -532,37 +532,51 @@ func (c *ConfigurationData) GetCacheControlUser() string {
 	return c.v.GetString(varCacheControlUser)
 }
 
+// use a mutex to prevent concurrent parsing
+var privateKeyParsingMutex sync.Mutex
+
 // GetTokenPrivateKey returns the private key (as set via config file or environment variable)
 // that is used to sign the authentication token.
 func (c *ConfigurationData) GetTokenPrivateKey() (*rsa.PrivateKey, error) {
 	if c.tokenPrivateKey == nil {
-		var err error
-		// retrieve the public key in the KC instance corresponding to the dev mode when it's enabled.
-		c.tokenPrivateKey, err = jwt.ParseRSAPrivateKeyFromPEM([]byte(c.v.GetString(varTokenPrivateKey)))
-		return c.tokenPrivateKey, err
+		if !c.v.IsSet(varTokenPrivateKey) {
+			return nil, errors.Errorf("'token.privatekey' variable is not defined")
+		}
+
+		// lock the mutex before parsing the key, so if another rountine is already parsing the key, then this one waits
+		privateKeyParsingMutex.Lock()
+		defer privateKeyParsingMutex.Unlock()
+		// at this point, we can avoid parsing *again* the key if it's not nil anymore
+		if c.tokenPrivateKey == nil {
+			var err error
+			c.tokenPrivateKey, err = jwt.ParseRSAPrivateKeyFromPEM([]byte(c.v.GetString(varTokenPrivateKey)))
+			return c.tokenPrivateKey, err
+		}
 	}
 	return c.tokenPrivateKey, nil
 
 }
 
+// use a mutex to prevent concurrent parsing
+var publicKeyParsingMutex sync.Mutex
+
 // GetTokenPublicKey returns the public key (as set via config file or environment variable)
 // that is used to decrypt the authentication token.
 func (c *ConfigurationData) GetTokenPublicKey() (*rsa.PublicKey, error) {
+	// lock before entering the block where key parsing will happen
 	if c.tokenPublicKey == nil {
-		var err error
-		// retrieve the public key in the KC instance corresponding to the dev mode when it's enabled.
-		if c.IsPostgresDeveloperModeEnabled() {
-			c.tokenPublicKey, err = keycloak.GetPublicKey(keycloak.Config{
-				BaseURL: c.GetKeycloakDevModeURL(),
-				Realm:   c.GetKeycloakRealm(),
-			})
-			if err != nil {
-				log.Panic(nil, nil, "Unable to load public key: ", err.Error())
-			}
-		} else {
-			c.tokenPublicKey, err = jwt.ParseRSAPublicKeyFromPEM([]byte(c.v.GetString(varTokenPublicKey)))
+		if !c.v.IsSet(varTokenPublicKey) {
+			return nil, errors.Errorf("'token.publickey' variable is not defined")
 		}
-		return c.tokenPublicKey, err
+		// lock the mutex before parsing the key, so if another rountine is already parsing the key, then this one waits
+		publicKeyParsingMutex.Lock()
+		defer publicKeyParsingMutex.Unlock()
+		// at this point, we can avoid parsing *again* the key if it's not nil anymore
+		if c.tokenPrivateKey == nil {
+			var err error
+			c.tokenPublicKey, err = jwt.ParseRSAPublicKeyFromPEM([]byte(c.v.GetString(varTokenPublicKey)))
+			return c.tokenPublicKey, err
+		}
 	}
 	return c.tokenPublicKey, nil
 }

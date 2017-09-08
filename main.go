@@ -45,7 +45,7 @@ import (
 
 func main() {
 	flag.Parse() // moved here because to avoid preventing execution of tests with the ginkgo tool. See https://github.com/onsi/ginkgo/issues/296#issuecomment-249924522
-	config := configuration.Get()
+	config := configuration.LoadDefault()
 	// Initialized developer mode flag and log level for the logger
 	log.InitializeLogger(config.IsLogJSON(), config.GetLogLevel())
 	log.Logger().Debugf("Config: %v\n", config.String()) // will print all config settings including DB credentials, so make sure this is only visible in DEBUG mode
@@ -103,13 +103,6 @@ func main() {
 
 	service.WithLogger(goalogrus.New(log.Logger()))
 
-	publicKey, err := config.GetTokenPublicKey()
-	if err != nil {
-		log.Panic(nil, map[string]interface{}{
-			"err": err,
-		}, "failed to parse public token")
-	}
-
 	// Setup Account/Login/Security
 	identityRepository := account.NewIdentityRepository(db)
 	userRepository := account.NewUserRepository(db)
@@ -129,6 +122,12 @@ func main() {
 
 	appDB := gormapplication.NewGormDB(db)
 
+	publicKey, err := config.GetTokenPublicKey()
+	if err != nil {
+		log.Panic(nil, map[string]interface{}{
+			"err": err,
+		}, "failed to parse public token")
+	}
 	tokenManager := token.NewManager(publicKey)
 	// Middleware that extracts and stores the token in the context
 	jwtMiddlewareTokenContext := witmiddleware.TokenContext(publicKey, nil, app.NewJWTSecurity())
@@ -178,9 +177,23 @@ func main() {
 	workItemLinkTypeCtrl := controller.NewWorkItemLinkTypeController(service, appDB, config)
 	app.MountWorkItemLinkTypeController(service, workItemLinkTypeCtrl)
 
-	// Mount "areas" controller
-	areaCtrl := controller.NewAreaController(service, appDB, config)
-	app.MountAreaController(service, areaCtrl)
+	// Mount "work item link" controller
+	workItemLinkCtrl := controller.NewWorkItemLinkController(service, appDB, config)
+	app.MountWorkItemLinkController(service, workItemLinkCtrl)
+
+	// Mount "work item comments" controller
+	//workItemCommentsCtrl := controller.NewWorkItemCommentsController(service, appDB, config)
+	workItemCommentsCtrl := controller.NewNotifyingWorkItemCommentsController(service, appDB, notificationChannel, config)
+	app.MountWorkItemCommentsController(service, workItemCommentsCtrl)
+
+	// Mount "work item relationships links" controller
+	workItemRelationshipsLinksCtrl := controller.NewWorkItemRelationshipsLinksController(service, appDB, config)
+	app.MountWorkItemRelationshipsLinksController(service, workItemRelationshipsLinksCtrl)
+
+	// Mount "comments" controller
+	//commentsCtrl := controller.NewCommentsController(service, appDB, config)
+	commentsCtrl := controller.NewNotifyingCommentsController(service, appDB, notificationChannel, config)
+	app.MountCommentsController(service, commentsCtrl)
 
 	var scheduler *remoteworkitem.Scheduler
 	if config.GetFeatureWorkitemRemote() {
@@ -243,7 +256,10 @@ func main() {
 	renderCtrl := controller.NewRenderController(service)
 	app.MountRenderController(service, renderCtrl)
 
-	//Mount "space area" controller
+	// Mount "areas" controller
+	areaCtrl := controller.NewAreaController(service, appDB, config)
+	app.MountAreaController(service, areaCtrl)
+
 	spaceAreaCtrl := controller.NewSpaceAreasController(service, appDB, config)
 	app.MountSpaceAreasController(service, spaceAreaCtrl)
 
@@ -253,10 +269,6 @@ func main() {
 	// Mount "namedspaces" controller
 	namedSpacesCtrl := controller.NewNamedspacesController(service, appDB)
 	app.MountNamedspacesController(service, namedSpacesCtrl)
-
-	//Mount "comments" controller
-	commentsCtrl := controller.NewNotifyingCommentsController(service, appDB, notificationChannel, config)
-	app.MountCommentsController(service, commentsCtrl)
 
 	// Mount "plannerBacklog" controller
 	plannerBacklogCtrl := controller.NewPlannerBacklogController(service, appDB, config)
@@ -289,19 +301,6 @@ func main() {
 	log.Logger().Infoln("Dev mode:       ", config.IsPostgresDeveloperModeEnabled())
 	log.Logger().Infoln("GOMAXPROCS:     ", runtime.GOMAXPROCS(-1))
 	log.Logger().Infoln("NumCPU:         ", runtime.NumCPU())
-
-	/*
-		http.Handle("/api/", service.Mux)
-		http.Handle("/", http.FileServer(assetFS()))
-		http.Handle("/favicon.ico", http.NotFoundHandler())
-			// Start http
-			if err := http.ListenAndServe(config.GetHTTPAddress(), nil); err != nil {
-				log.Error(nil, map[string]interface{}{
-					"addr": config.GetHTTPAddress(),
-					"err":  err,
-				}, "unable to connect to server")
-				service.LogError("startup", "err", err)
-			}*/
 
 	engine := api.NewGinEngine(appDB, notificationChannel, config)
 	engine.Any("/legacyapi/*w", gin.WrapH(service.Mux))
