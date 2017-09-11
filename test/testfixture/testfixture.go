@@ -9,6 +9,7 @@ import (
 	"github.com/fabric8-services/fabric8-wit/codebase"
 	"github.com/fabric8-services/fabric8-wit/comment"
 	"github.com/fabric8-services/fabric8-wit/iteration"
+	"github.com/fabric8-services/fabric8-wit/label"
 	"github.com/fabric8-services/fabric8-wit/space"
 	"github.com/fabric8-services/fabric8-wit/workitem"
 	"github.com/fabric8-services/fabric8-wit/workitem/link"
@@ -28,7 +29,7 @@ type TestFixture struct {
 	db               *gorm.DB
 	isolatedCreation bool
 	ctx              context.Context
-	checkCallbacks   []func() error
+	checkFuncs       []func() error
 
 	Identities             []*account.Identity          // Itentities (if any) that were created for this test fixture.
 	Iterations             []*iteration.Iteration       // Iterations (if any) that were created for this test fixture.
@@ -41,6 +42,7 @@ type TestFixture struct {
 	WorkItemLinkTypes      []*link.WorkItemLinkType     // Work item link types (if any) that were created for this test fixture.
 	WorkItemLinkCategories []*link.WorkItemLinkCategory // Work item link categories (if any) that were created for this test fixture.
 	WorkItemLinks          []*link.WorkItemLink         // Work item links (if any) that were created for this test fixture.
+	Labels                 []*label.Label
 }
 
 // NewFixture will create a test fixture by executing the recipies from the
@@ -127,7 +129,7 @@ func NewFixtureIsolated(db *gorm.DB, setupFuncs ...RecipeFunction) (*TestFixture
 // so if you don't mess with the fixture after it was created, there's no need
 // to call Check() again.
 func (fxt *TestFixture) Check() error {
-	for _, fn := range fxt.checkCallbacks {
+	for _, fn := range fxt.checkFuncs {
 		if err := fn(); err != nil {
 			return errs.Wrap(err, "check function failed")
 		}
@@ -149,18 +151,19 @@ const (
 	kindWorkItemLinkTypes      kind = "work_item_link_type"
 	kindWorkItemLinkCategories kind = "work_item_link_categorie"
 	kindWorkItemLinks          kind = "work_item_link"
+	kindLabels                 kind = "labels"
 )
 
 type createInfo struct {
-	numInstances             int
-	customizeEntityCallbacks []CustomizeEntityCallback
+	numInstances         int
+	customizeEntityFuncs []CustomizeEntityFunc
 }
 
-func (fxt *TestFixture) runCustomizeEntityCallbacks(idx int, k kind) error {
+func (fxt *TestFixture) runCustomizeEntityFuncs(idx int, k kind) error {
 	if fxt.info[k] == nil {
 		return errs.Errorf("the creation info for kind %s is nil (this should not happen)", k)
 	}
-	for _, dfn := range fxt.info[k].customizeEntityCallbacks {
+	for _, dfn := range fxt.info[k].customizeEntityFuncs {
 		if err := dfn(fxt, idx); err != nil {
 			return errs.Wrapf(err, "failed to run customize-entity-callbacks for kind %s", k)
 		}
@@ -168,7 +171,7 @@ func (fxt *TestFixture) runCustomizeEntityCallbacks(idx int, k kind) error {
 	return nil
 }
 
-func (fxt *TestFixture) setupInfo(n int, k kind, fns ...CustomizeEntityCallback) error {
+func (fxt *TestFixture) setupInfo(n int, k kind, fns ...CustomizeEntityFunc) error {
 	if n <= 0 {
 		return errs.Errorf("the number of objects to create must always be greater than zero: %d", n)
 	}
@@ -180,13 +183,13 @@ func (fxt *TestFixture) setupInfo(n int, k kind, fns ...CustomizeEntityCallback)
 		maxN = fxt.info[k].numInstances
 	}
 	fxt.info[k].numInstances = maxN
-	fxt.info[k].customizeEntityCallbacks = append(fxt.info[k].customizeEntityCallbacks, fns...)
+	fxt.info[k].customizeEntityFuncs = append(fxt.info[k].customizeEntityFuncs, fns...)
 	return nil
 }
 
 func newFixture(db *gorm.DB, isolatedCreation bool, recipeFuncs ...RecipeFunction) (*TestFixture, error) {
 	fxt := TestFixture{
-		checkCallbacks:   []func() error{},
+		checkFuncs:       []func() error{},
 		info:             map[kind]*createInfo{},
 		db:               db,
 		isolatedCreation: isolatedCreation,
@@ -203,6 +206,7 @@ func newFixture(db *gorm.DB, isolatedCreation bool, recipeFuncs ...RecipeFunctio
 		makeWorkItemLinkCategories,
 		// actually make the objects that DO have dependencies
 		makeSpaces,
+		makeLabels,
 		makeWorkItemLinkTypes,
 		makeCodebases,
 		makeWorkItemTypes,

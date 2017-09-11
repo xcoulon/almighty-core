@@ -21,6 +21,7 @@ import (
 	. "github.com/fabric8-services/fabric8-wit/controller"
 	"github.com/fabric8-services/fabric8-wit/gormsupport"
 	"github.com/fabric8-services/fabric8-wit/iteration"
+	"github.com/fabric8-services/fabric8-wit/label"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/fabric8-services/fabric8-wit/space"
 	wittoken "github.com/fabric8-services/fabric8-wit/token"
@@ -355,6 +356,11 @@ func (g *GormTestBase) Iterations() iteration.Repository {
 
 // Iterations returns a iteration repository
 func (g *GormTestBase) Areas() area.Repository {
+	return nil
+}
+
+// Labels returns a label repository
+func (g *GormTestBase) Labels() label.Repository {
 	return nil
 }
 
