@@ -14,7 +14,8 @@ import:
   # version: ^v2.3.1
 - package: gopkg.in/dgrijalva/jwt-go.v3
   version: d2709f9f1f31ebcda9651b03077758c1f3a0018c
-- package: github.com/google/jsonapi
+- package: github.com/xcoulon/jsonapi
+  version: 5532f42312b2aab162c80de5270734cd689fdad4
 - package: github.com/fabric8-services/fabric8-auth
   subpackages:
   - design

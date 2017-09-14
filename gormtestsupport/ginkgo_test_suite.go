@@ -179,9 +179,11 @@ func (s *GinkgoTestSuite) generateAccessToken(tokenEndpoint, username, userSecre
 		return s.Configuration.GetTokenPublicKey()
 	})
 	if err != nil {
+		publicKey, _ := s.Configuration.GetTokenPublicKey()
 		log.Error(nil, map[string]interface{}{
-			"err": err,
-		}, "unable to parse access token after we got it")
+			"err":        err,
+			"public_key": publicKey,
+		}, "unable to parse access token after we got it (wrong public key ?)")
 		return nil, err
 	}
 

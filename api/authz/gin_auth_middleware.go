@@ -17,21 +17,14 @@ import (
 	"gopkg.in/dgrijalva/jwt-go.v3"
 )
 
-//SigningKey the key for signing the JWT
-var SigningKey *rsa.PrivateKey
-
 //VerifyKey the key for verifying the JWT
 var VerifyKey *rsa.PublicKey
 
 func init() {
 	var err error
-	SigningKey, err = configuration.LoadDefault().GetTokenPrivateKey()
-	if err != nil {
-		log.Panic(nil, nil, "Unable to load private key: ", err.Error())
-	}
 	VerifyKey, err = configuration.LoadDefault().GetTokenPublicKey()
 	if err != nil {
-		log.Panic(nil, nil, "Unable to load public key: ", err.Error())
+		log.Panic(nil, nil, "Unable to load public key: %s", err.Error())
 	}
 }
 
@@ -94,7 +87,7 @@ func NewIdentityHandler() func(jwt.MapClaims) string {
 	}
 }
 
-// NewUserExistsVerifier initializes the authorizator handler of the JWT Auth middleware
+// NewCheckUserExistsCallback initializes the authorizator handler of the JWT Auth middleware
 // This handler checks that the given userID corresponds to a valid identity in the DB.
 func NewCheckUserExistsCallback(db application.DB) func(string, *gin.Context) bool {
 	return func(userID string, ctx *gin.Context) bool {

@@ -13,6 +13,11 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+func baseURL(req *http.Request) string {
+	url := req.URL
+	return fmt.Sprintf("%[1]s://%[2]s", url.Scheme, url.Host)
+}
+
 // OK Responds with a '200 OK' response
 func OK(ctx *gin.Context, result interface{}) error {
 	ctx.Status(http.StatusOK)
@@ -148,5 +153,3 @@ func GetQueryParamAsBool(ctx *gin.Context, key string) (*bool, error) {
 	}
 	return &boolValue, err
 }
-
-

@@ -16,6 +16,7 @@ import (
 	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"
 
+	"github.com/fabric8-services/fabric8-tenant/keycloak"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/spf13/viper"
 )
@@ -121,30 +122,32 @@ var config *ConfigurationData
 //LoadDefault loads the configuration once using the default config file or the one specified with the '-config' switch.
 // !! Will panic if an error occurs !!
 func LoadDefault() *ConfigurationData {
-	fmt.Printf("Loading default configuration\n")
-	loadConfigMutex.Lock()
-	defer loadConfigMutex.Unlock()
 	if config == nil {
-		var configFilePath string
-		var printConfig, migrateDB bool
-		flag.StringVar(&configFilePath, "config", "", "Path to the config file to read")
-		flag.BoolVar(&printConfig, "printConfig", false, "Prints the config (including merged environment variables) and exits")
-		flag.BoolVar(&migrateDB, "migrateDatabase", false, "Migrates the database to the newest version and exits.")
+		loadConfigMutex.Lock()
+		defer loadConfigMutex.Unlock()
+		if config == nil {
+			fmt.Printf("Loading default configuration\n")
+			var configFilePath string
+			var printConfig, migrateDB bool
+			flag.StringVar(&configFilePath, "config", "", "Path to the config file to read")
+			flag.BoolVar(&printConfig, "printConfig", false, "Prints the config (including merged environment variables) and exits")
+			flag.BoolVar(&migrateDB, "migrateDatabase", false, "Migrates the database to the newest version and exits.")
 
-		// Override default -config switch with environment variable only if -config switch was
-		// not explicitly given via the command line.
-		configSwitchIsSet := false
-		flag.Visit(func(f *flag.Flag) {
-			if f.Name == "config" {
-				configSwitchIsSet = true
+			// Override default -config switch with environment variable only if -config switch was
+			// not explicitly given via the command line.
+			configSwitchIsSet := false
+			flag.Visit(func(f *flag.Flag) {
+				if f.Name == "config" {
+					configSwitchIsSet = true
+				}
+			})
+			if !configSwitchIsSet {
+				if envConfigPath, ok := os.LookupEnv("F8_CONFIG_FILE_PATH"); ok {
+					configFilePath = envConfigPath
+				}
 			}
-		})
-		if !configSwitchIsSet {
-			if envConfigPath, ok := os.LookupEnv("F8_CONFIG_FILE_PATH"); ok {
-				configFilePath = envConfigPath
-			}
+			LoadConfigurationFromPath(configFilePath, printConfig, migrateDB)
 		}
-		LoadConfigurationFromPath(configFilePath, printConfig, migrateDB)
 	}
 	return config
 }
@@ -586,9 +589,12 @@ func (c *ConfigurationData) GetTokenPublicKey() (*rsa.PublicKey, error) {
 		publicKeyParsingMutex.Lock()
 		defer publicKeyParsingMutex.Unlock()
 		// at this point, we can avoid parsing *again* the key if it's not nil anymore
-		if c.tokenPrivateKey == nil {
+		if c.tokenPublicKey == nil {
 			var err error
-			c.tokenPublicKey, err = jwt.ParseRSAPublicKeyFromPEM([]byte(c.v.GetString(varTokenPublicKey)))
+			c.tokenPublicKey, err = keycloak.GetPublicKey(keycloak.Config{
+				BaseURL: "https://sso.prod-preview.openshift.io", // for now, util the new `auth` service has been deployed
+				Realm:   c.GetKeycloakRealm(),
+			})
 			return c.tokenPublicKey, err
 		}
 	}

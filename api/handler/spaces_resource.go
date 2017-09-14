@@ -24,7 +24,6 @@ import (
 // SpacesResourceConfiguration is the config interface for SpacesResource
 type SpacesResourceConfiguration interface {
 	GetCacheControlWorkItems() string
-	GetAPIServiceURL() string
 }
 
 // SpacesResource the resource for spaces
@@ -162,7 +161,7 @@ func (r SpacesResource) Create(ctx *gin.Context) {
 	// marshall the result into a JSON-API compliant response
 	ctx.Status(http.StatusCreated)
 	ctx.Header("Content-Type", jsonapi.MediaType)
-	location := rest.AbsoluteURL(ctx.Request, fmt.Sprintf("%[1]s/api/spaces/%[2]s", r.config.GetAPIServiceURL(), createdSpace.ID.String()))
+	location := rest.AbsoluteURL(ctx.Request, fmt.Sprintf("%[1]s/api/spaces/%[2]s", baseURL(ctx.Request), createdSpace.ID.String()))
 	ctx.Header("Location", location)
 	if err := jsonapi.MarshalPayload(ctx.Writer, &result); err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, errs.Wrapf(err, "error while writing response after creating space with id '%s'", spaceID.String()))
@@ -220,7 +219,7 @@ func (r SpacesResource) List(ctx *gin.Context) {
 		ctx.AbortWithError(http.StatusInternalServerError, errs.Wrap(err, "error while preparing the response payload"))
 	}
 	payload.Links = &jsonapi.Links{}
-	first, prev, next, last := getPagingLinks(payload.Links, fmt.Sprintf("%[1]s/api/spaces/", r.config.GetAPIServiceURL()), int(cnt), offset, limit, 10, "")
+	first, prev, next, last := getPagingLinks(payload.Links, fmt.Sprintf("%[1]s/api/spaces/", baseURL(ctx.Request)), int(cnt), offset, limit, 10, "")
 	payload.Meta = &jsonapi.Meta{
 		"total-count": cnt,
 	}

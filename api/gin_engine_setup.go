@@ -6,6 +6,7 @@ import (
 
 	"github.com/fabric8-services/fabric8-wit/api/authz"
 	"github.com/fabric8-services/fabric8-wit/api/handler"
+	"github.com/fabric8-services/fabric8-wit/api/model"
 	"github.com/fabric8-services/fabric8-wit/auth"
 	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/fabric8-services/fabric8-wit/gormapplication"
@@ -33,13 +34,15 @@ func NewGinEngine(appDB *gormapplication.GormDB, notificationChannel notificatio
 	authGroup.POST("/api/spaces/:spaceID/workitems", workitemsResource.Create)
 	authGroup.PATCH("/api/workitems/:workitemID", authz.NewWorkItemEditorAuthorizator(appDB, config), workitemsResource.Update)
 
+	// register types for the JSON-API
+	model.RegisterUUIDType()
 	// If an /api/* route does not exist, redirect it to /legacyapi/* path
 	// to be handled by goa
-	httpEngine.NoRoute(func(c *gin.Context) {
-		if strings.HasPrefix(c.Request.URL.Path, "/api/") {
-			c.Redirect(http.StatusTemporaryRedirect, strings.Replace(c.Request.URL.Path, "/api/", "/legacyapi/", 1))
+	httpEngine.NoRoute(func(ctx *gin.Context) {
+		if strings.HasPrefix(ctx.Request.URL.Path, "/api/") {
+			ctx.Redirect(http.StatusTemporaryRedirect, strings.Replace(ctx.Request.URL.Path, "/api/", "/legacyapi/", 1))
 		} else {
-			c.String(http.StatusNotFound, "Not found!")
+			ctx.String(http.StatusNotFound, "Not found!")
 		}
 	})
 

@@ -17,7 +17,7 @@ import (
 
 //WorkItem the WorkItem type of resource to (un)marshall in the JSON-API requests/responses
 type WorkItem struct {
-	ID                UUID          `jsonapi:"primary,workitems"`
+	ID                uuid.UUID     `jsonapi:"primary,workitems"`
 	Version           int           `jsonapi:"attr,version"`
 	Title             *string       `jsonapi:"attr,system.title"`
 	State             *string       `jsonapi:"attr,system.state"`
@@ -43,7 +43,7 @@ func ConvertWorkItemToModel(wi workitem.WorkItem) *WorkItem {
 	descriptionContent := wi.Fields[workitem.SystemDescription].(rendering.MarkupContent).Content
 	descriptionMarkup := wi.Fields[workitem.SystemDescription].(rendering.MarkupContent).Markup
 	return &WorkItem{
-		ID:                NewUUID(wi.ID),
+		ID:                wi.ID,
 		SpaceID:           wi.SpaceID.String(),
 		Version:           wi.Version,
 		Title:             &title,

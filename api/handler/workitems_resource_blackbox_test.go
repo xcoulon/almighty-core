@@ -127,7 +127,7 @@ var _ = Describe("WorkItems", func() {
 				require.Nil(GinkgoT(), err)
 				r, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/spaces/%[1]s/workitems", s.space.ID), payload)
 				// generate/sign an auth token
-				r.Header.Set("Authorization", "Bearer "+makeTokenString("RS256", "foo", nil))
+				r.Header.Set("Authorization", "Bearer foo")
 				// when
 				rr := Execute(s.GinkgoTestSuite, r)
 				// then
@@ -203,7 +203,7 @@ var _ = Describe("WorkItems", func() {
 				require.Nil(GinkgoT(), err)
 				r, _ := http.NewRequest(http.MethodPatch, fmt.Sprintf("/api/workitems/%[1]s", createdWorkItem.ID.String()), payload)
 				// generate an invalid auth token
-				r.Header.Set("Authorization", "Bearer "+makeTokenString("RS256", "foo", nil))
+				r.Header.Set("Authorization", "Bearer foo")
 				// when
 				rr := Execute(s.GinkgoTestSuite, r)
 				// then
