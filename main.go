@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"net/http"
+	"net/url"
 	"os"
 	"os/user"
 	"runtime"
@@ -306,7 +307,14 @@ func main() {
 	log.Logger().Infoln("GOMAXPROCS:     ", runtime.GOMAXPROCS(-1))
 	log.Logger().Infoln("NumCPU:         ", runtime.NumCPU())
 
-	engine := api.NewGinEngine(appDB, notificationChannel, config)
+	redirectToGoaMux := func(ctx context.Context, req *http.Request, respWritter *http.ResponseWriter, values url.Values) {
+		handler := service.Mux.Lookup(req.Method, req.URL.Path)
+		log.Logger().Warnf("Redirecting to handler in charge of %s %s: %v", req.Method, req.URL.Path, handler)
+		handler(respWritter, req, values)
+
+	}
+
+	engine := api.NewGinEngine(appDB, notificationChannel, config, redirectToGoaMux)
 	engine.Any("/legacyapi/*w", gin.WrapH(service.Mux))
 	engine.GET("/", gin.WrapH(http.FileServer(assetFS())))
 	engine.GET("/favicon.ico", gin.WrapH(http.NotFoundHandler()))

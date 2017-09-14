@@ -15,7 +15,7 @@ import (
 )
 
 // NewGinEngine instanciates a new HTTP engine to server the requests
-func NewGinEngine(appDB *gormapplication.GormDB, notificationChannel notification.Channel, config *configuration.ConfigurationData) *gin.Engine {
+func NewGinEngine(appDB *gormapplication.GormDB, notificationChannel notification.Channel, config *configuration.ConfigurationData, redirectToGoa func(*http.Request)) *gin.Engine {
 	httpEngine := gin.Default()
 	httpEngine.GET("/ping", func(c *gin.Context) {
 		c.String(200, "pong")
@@ -40,7 +40,8 @@ func NewGinEngine(appDB *gormapplication.GormDB, notificationChannel notificatio
 	// to be handled by goa
 	httpEngine.NoRoute(func(ctx *gin.Context) {
 		if strings.HasPrefix(ctx.Request.URL.Path, "/api/") {
-			ctx.Redirect(http.StatusTemporaryRedirect, strings.Replace(ctx.Request.URL.Path, "/api/", "/legacyapi/", 1))
+			redirectToGoa(ctx.Request)
+			// ctx.Redirect(http.StatusTemporaryRedirect, strings.Replace(ctx.Request.URL.Path, "/api/", "/legacyapi/", 1))
 		} else {
 			ctx.String(http.StatusNotFound, "Not found!")
 		}
