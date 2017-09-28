@@ -10,10 +10,12 @@ import (
 
 	"context"
 
+	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 
 	"github.com/fabric8-services/fabric8-wit/account"
+	"github.com/fabric8-services/fabric8-wit/api"
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/application"
 	"github.com/fabric8-services/fabric8-wit/auth"
@@ -370,14 +372,26 @@ func main() {
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 
 	// Start http
-	if err := http.ListenAndServe(config.GetHTTPAddress(), nil); err != nil {
-		log.Error(nil, map[string]interface{}{
-			"addr": config.GetHTTPAddress(),
-			"err":  err,
-		}, "unable to connect to server")
-		service.LogError("startup", "err", err)
+	// if err := http.ListenAndServe(config.GetHTTPAddress(), nil); err != nil {
+	// 	log.Error(nil, map[string]interface{}{
+	// 		"addr": config.GetHTTPAddress(),
+	// 		"err":  err,
+	// 	}, "unable to connect to server")
+	// 	service.LogError("startup", "err", err)
+	// }
+
+	redirectToGoaMux := func(ctx *gin.Context) {
+		req := ctx.Request
+		respWritter := ctx.Writer
+		log.Warn(ctx, map[string]interface{}{"request_uri": ctx.Request.RequestURI}, "Redirecting incoming request to Goa handler")
+		service.Mux.ServeHTTP(respWritter, req)
 	}
 
+	engine := api.NewGinEngine(appDB, notificationChannel, tokenManager, config, redirectToGoaMux)
+	// engine.Any("/legacyapi/*w", gin.WrapH(service.Mux))
+	engine.GET("/", gin.WrapH(http.FileServer(assetFS())))
+	engine.GET("/favicon.ico", gin.WrapH(http.NotFoundHandler()))
+	engine.Run(config.GetHTTPAddress())
 }
 
 func printUserInfo() {

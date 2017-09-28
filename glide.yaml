@@ -11,6 +11,25 @@ import:
 - package: github.com/fabric8-services/fabric8-auth
   subpackages:
   - design
+- package: github.com/gin-gonic/gin
+  version: ^1.2.0
+- package: github.com/savaki/swag
+  version: 3a75479e44a3ae7f3a4cc91baa4ad000ac81a8ed
+- package: gopkg.in/go-playground/validator.v8
+  version: 5f1438d3fca68893a817e4a66806cea46a9e4ebf
+- package: github.com/appleboy/gin-jwt
+  # version: ^v2.3.1
+  version: 8779041070591681351268ea1c2224f519085b3e
+  repo: https://github.com/xcoulon/gin-jwt
+  vcs: git
+- package: github.com/gin-contrib/cors
+  version: ^1.2
+- package: gopkg.in/dgrijalva/jwt-go.v3
+  version: d2709f9f1f31ebcda9651b03077758c1f3a0018c
+- package: github.com/google/jsonapi
+  version: 94ca2efe1a4570238f014c38d416d86eda58ec2d
+  repo: https://github.com/xcoulon/jsonapi
+  vcs: git
 - package: github.com/dgrijalva/jwt-go
   version: ^3.0.0
 - package: github.com/goadesign/goa

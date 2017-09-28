@@ -57,6 +57,7 @@ type Manager interface {
 	PublicKey(kid string) *rsa.PublicKey
 	PublicKeys() []*rsa.PublicKey
 	IsServiceAccount(ctx context.Context) bool
+	DevModePublicKey() *rsa.PublicKey
 }
 
 type tokenManager struct {
@@ -100,7 +101,7 @@ func NewManager(config configuration) (Manager, error) {
 			tm.publicKeys = append(tm.publicKeys, &PublicKey{KeyID: remoteKey.KeyID, Key: remoteKey.Key})
 			log.Info(nil, map[string]interface{}{
 				"kid": remoteKey.KeyID,
-			}, "Public key added")
+			}, "Public key (dev mode) added")
 		}
 	}
 
@@ -185,6 +186,12 @@ func (mgm *tokenManager) PublicKeys() []*rsa.PublicKey {
 		keys = append(keys, key.Key)
 	}
 	return keys
+}
+
+// DevModePublicKey returns the public key for the given realm
+func (mgm *tokenManager) DevModePublicKey() *rsa.PublicKey {
+	//TODO (xco) see https://github.com/fabric8-services/fabric8-auth/issues/104
+	return mgm.publicKeysMap["bNq-BCOR3ev-E6buGSaPrU-0SXX8whhDlmZ6geenkTE"]
 }
 
 // CheckClaims checks if all the required claims are present in the access token

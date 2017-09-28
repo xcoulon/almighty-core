@@ -54,6 +54,29 @@ imports:
   version: 629574ca2a5df945712d3079857300b5e4da0236
 - name: github.com/fzipp/gocyclo
   version: 6acd4345c835499920e8426c7e4e8d7a34f1bb83
+- name: github.com/gin-contrib/sse
+  version: 22d885f9ecc78bf4ee5d72b937e4bbcdc58e8cae
+- name: github.com/gin-gonic/gin
+  version: d459835d2b077e44f7c9b453505ee29881d5d12d
+  subpackages:
+  - binding
+  - render
+- name: github.com/appleboy/gin-jwt
+  version: 8779041070591681351268ea1c2224f519085b3e
+  repo: https://github.com/xcoulon/gin-jwt
+  vcs: git
+- name: github.com/savaki/swag
+  version: 3a75479e44a3ae7f3a4cc91baa4ad000ac81a8ed
+- name: gopkg.in/go-playground/validator.v8
+  version: 5f1438d3fca68893a817e4a66806cea46a9e4ebf
+- name: gopkg.in/dgrijalva/jwt-go.v3
+  version: d2709f9f1f31ebcda9651b03077758c1f3a0018c
+- name: github.com/gin-contrib/cors
+  version: cf4846e6a636a76237a28d9286f163c132e841bc
+- name: github.com/google/jsonapi
+  version: 94ca2efe1a4570238f014c38d416d86eda58ec2d
+  repo: https://github.com/xcoulon/jsonapi
+  vcs: git
 - name: github.com/goadesign/goa
   version: 58f3177f36f2c50ee6119da92795e48bac6d6243
   vcs: git

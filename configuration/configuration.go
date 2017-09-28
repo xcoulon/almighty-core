@@ -1,12 +1,12 @@
 package configuration
 
 import (
-	"crypto/rsa"
 	"fmt"
 	"net/http"
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -103,31 +103,31 @@ const (
 
 // ConfigurationData encapsulates the Viper configuration object which stores the configuration data in-memory.
 type ConfigurationData struct {
-	v               *viper.Viper
-	tokenPublicKey  *rsa.PublicKey
-	tokenPrivateKey *rsa.PrivateKey
+	v *viper.Viper
 }
+
+var config *ConfigurationData
 
 // NewConfigurationData creates a configuration reader object using a configurable configuration file path
 func NewConfigurationData(configFilePath string) (*ConfigurationData, error) {
-	c := ConfigurationData{
+	config = &ConfigurationData{
 		v: viper.New(),
 	}
-	c.v.SetEnvPrefix("F8")
-	c.v.AutomaticEnv()
-	c.v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	c.v.SetTypeByDefaultValue(true)
-	c.setConfigDefaults()
+	config.v.SetEnvPrefix("F8")
+	config.v.AutomaticEnv()
+	config.v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	config.v.SetTypeByDefaultValue(true)
+	config.setConfigDefaults()
 
 	if configFilePath != "" {
-		c.v.SetConfigType("yaml")
-		c.v.SetConfigFile(configFilePath)
-		err := c.v.ReadInConfig() // Find and read the config file
-		if err != nil {           // Handle errors reading the config file
+		config.v.SetConfigType("yaml")
+		config.v.SetConfigFile(configFilePath)
+		err := config.v.ReadInConfig() // Find and read the config file
+		if err != nil {                // Handle errors reading the config file
 			return nil, errors.Errorf("Fatal error config file: %s \n", err)
 		}
 	}
-	return &c, nil
+	return config, nil
 }
 
 func getConfigFilePath() string {
@@ -144,11 +144,21 @@ func (c *ConfigurationData) GetDefaultConfigurationFile() string {
 	return defaultConfigFile
 }
 
+var configLoadMutex sync.Mutex
+
 // GetConfigurationData is a wrapper over NewConfigurationData which reads configuration file path
 // from the environment variable.
 func GetConfigurationData() (*ConfigurationData, error) {
-	cd, err := NewConfigurationData(getConfigFilePath())
-	return cd, err
+	if config == nil {
+		configLoadMutex.Lock()
+		defer configLoadMutex.Unlock()
+		if config == nil {
+			var err error
+			config, err = NewConfigurationData(getConfigFilePath())
+			return config, err
+		}
+	}
+	return config, nil
 }
 
 func (c *ConfigurationData) setConfigDefaults() {
@@ -555,11 +565,11 @@ func (c *ConfigurationData) GetKeycloakDomainPrefix() string {
 
 // GetKeycloakRealm returns the keycloak realm name
 func (c *ConfigurationData) GetKeycloakRealm() string {
-	if c.v.IsSet(varKeycloakRealm) {
-		return c.v.GetString(varKeycloakRealm)
-	}
 	if c.IsPostgresDeveloperModeEnabled() {
 		return devModeKeycloakRealm
+	}
+	if c.v.IsSet(varKeycloakRealm) {
+		return c.v.GetString(varKeycloakRealm)
 	}
 	return defaultKeycloakRealm
 }

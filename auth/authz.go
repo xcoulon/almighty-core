@@ -657,6 +657,7 @@ func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlement
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"entitlement_resource": entitlementResource,
+			"entitlement_endpoint": entitlementEndpoint,
 			"err": err.Error(),
 		}, "unable to obtain entitlement resource")
 		return nil, errors.NewInternalError(ctx, errs.Wrap(err, "unable to obtain entitlement resource"))
@@ -670,7 +671,9 @@ func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlement
 	default:
 		log.Error(ctx, map[string]interface{}{
 			"entitlement_resource": entitlementResource,
+			"entitlement_endpoint": entitlementEndpoint,
 			"response_status":      res.Status,
+			"user_access_token":    userAccesToken,
 			"response_body":        rest.ReadBody(res.Body),
 		}, "unable to update the Keycloak permission")
 		return nil, errors.NewInternalError(ctx, errs.New("unable to obtain entitlement resource. Response status: "+res.Status+". Responce body: "+rest.ReadBody(res.Body)))
