@@ -52,7 +52,7 @@ func NewShowTenant(config tenantConfig) CodebaseInitTenantProvider {
 // InitTenant creates a new tenant service in oso
 func InitTenant(ctx context.Context, config tenantConfig) error {
 
-	c, err := createClient(ctx, config)
+	c, err := createInitTenantClient(ctx, config)
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func InitTenant(ctx context.Context, config tenantConfig) error {
 // UpdateTenant updates excisting tenant in oso
 func UpdateTenant(ctx context.Context, config tenantConfig) error {
 
-	c, err := createClient(ctx, config)
+	c, err := createInitTenantClient(ctx, config)
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func UpdateTenant(ctx context.Context, config tenantConfig) error {
 // CleanTenant cleans out a tenant in oso.
 func CleanTenant(ctx context.Context, config tenantConfig) error {
 
-	c, err := createClient(ctx, config)
+	c, err := createInitTenantClient(ctx, config)
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func CleanTenant(ctx context.Context, config tenantConfig) error {
 // ShowTenant fetches the current tenant state.
 func ShowTenant(ctx context.Context, config tenantConfig) (*tenant.TenantSingle, error) {
 
-	c, err := createClient(ctx, config)
+	c, err := createInitTenantClient(ctx, config)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +129,7 @@ func ShowTenant(ctx context.Context, config tenantConfig) (*tenant.TenantSingle,
 	return nil, errors.NewInternalError(ctx, fmt.Errorf("Unknown response "+res.Status))
 }
 
-func createClient(ctx context.Context, config tenantConfig) (*tenant.Client, error) {
+func createInitTenantClient(ctx context.Context, config tenantConfig) (*tenant.Client, error) {
 	u, err := url.Parse(config.GetTenantServiceURL())
 	if err != nil {
 		return nil, err

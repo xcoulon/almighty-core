@@ -2,8 +2,6 @@ package controller
 
 import (
 	"context"
-	"net/http"
-	"net/url"
 
 	"github.com/fabric8-services/fabric8-wit/app"
 	"github.com/fabric8-services/fabric8-wit/auth"
@@ -15,7 +13,6 @@ import (
 	"github.com/fabric8-services/fabric8-wit/errors"
 	"github.com/fabric8-services/fabric8-wit/rest"
 	"github.com/goadesign/goa"
-	"github.com/goadesign/goa/client"
 	errs "github.com/pkg/errors"
 )
 
@@ -42,7 +39,7 @@ func NewUserController(service *goa.Service, config UserControllerConfiguration)
 
 // Show returns the authorized user based on the provided Token
 func (c *UserController) Show(ctx *app.ShowUserContext) error {
-	client, err := c.createClient(ctx)
+	client, err := auth.CreateAuthClient(ctx, c.config)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
@@ -102,17 +99,4 @@ func convertToAppUser(request *goa.RequestData, user *authservice.User) *app.Use
 			},
 		},
 	}
-}
-
-func (c *UserController) createClient(ctx *app.ShowUserContext) (*authservice.Client, error) {
-	authEndpoint := c.config.GetAuthServiceURL()
-
-	u, err := url.Parse(authEndpoint)
-	if err != nil {
-		return nil, err
-	}
-	clnt := authservice.New(client.HTTPClientDoer(http.DefaultClient))
-	clnt.Host = u.Host
-	clnt.Scheme = u.Scheme
-	return clnt, nil
 }

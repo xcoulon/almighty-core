@@ -52,7 +52,7 @@ func (m *AuthzResourceManager) CreateSpace(ctx context.Context, request *http.Re
 		}}, nil
 	}
 
-	c, err := CreateClient(ctx, m.configuration)
+	c, err := CreateAuthClient(ctx, m.configuration)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func (m *AuthzResourceManager) DeleteSpace(ctx context.Context, request *http.Re
 		}, "Authorization is disabled. Keycloak space resource won't be deleted")
 		return nil
 	}
-	c, err := CreateClient(ctx, m.configuration)
+	c, err := CreateAuthClient(ctx, m.configuration)
 	if err != nil {
 		return err
 	}
@@ -139,7 +139,7 @@ func (m *AuthzResourceManager) DeleteSpace(ctx context.Context, request *http.Re
 	return nil
 }
 
-func CreateClient(ctx context.Context, config AuthServiceConfiguration) (*authservice.Client, error) {
+func CreateAuthClient(ctx context.Context, config AuthServiceConfiguration) (*authservice.Client, error) {
 	u, err := url.Parse(config.GetAuthServiceURL())
 	if err != nil {
 		return nil, err
