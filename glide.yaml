@@ -119,3 +119,4 @@ import:
 - package: github.com/xeipuuv/gojsonreference
 - package: github.com/xeipuuv/gojsonpointer
 - package: github.com/prometheus/client_golang
+- package: github.com/Unleash/unleash-client-go

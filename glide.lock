@@ -1,5 +1,5 @@
-hash: caa9d898279820017887be76710f5ceccd0a6ba8d7fc4ccc3bbd40578fdfa4c4
-updated: 2017-11-08T03:37:24.617276964+01:00
+hash: 9f05269a108e1cc66cf94d2e2be225a43f352faadc20b11bcd3a79a9cad668dd
+updated: 2017-11-15T09:34:33.182834973+01:00
 imports:
 - name: github.com/andygrunwald/go-jira
   version: 9d1f282f93af41553ddb53b0116a8cdb75b4837a
@@ -224,6 +224,8 @@ imports:
   version: 4a656addb20609ba4cb4d20219a2f6c27aeb142c
   subpackages:
   - tcontainer
+- name: github.com/Unleash/unleash-client-go
+  version: 5e8fdebb43e3dd7a8d25c4614925122b06c2ede3
 - name: github.com/wadey/gocovmerge
   version: b5bfa59ec0adc420475f97f89b58045c721d761c
 - name: github.com/xeipuuv/gojsonpointer
