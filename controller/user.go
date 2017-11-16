@@ -39,7 +39,7 @@ func NewUserController(service *goa.Service, config UserControllerConfiguration)
 
 // Show returns the authorized user based on the provided Token
 func (c *UserController) Show(ctx *app.ShowUserContext) error {
-	client, err := auth.CreateAuthClient(ctx, c.config)
+	client, err := auth.NewAuthClient(ctx, c.config)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}

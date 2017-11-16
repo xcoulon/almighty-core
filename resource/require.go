@@ -21,6 +21,9 @@ const (
 	// Database refers to the name of the environment variable that is used to
 	// specify that test can be run that require a database.
 	Database = "F8_RESOURCE_DATABASE"
+	// Toggles refers to the name of the environment variable that is used to
+	// specify that test can be run that require the f8toggles service.
+	Toggles = "F8_RESOURCE_TOGGLES"
 	// Remote refers to the name of the environment variable that is used to
 	// specify that test can be run that require availability of some remote servers such as Keycloak.
 	Remote = "F8_RESOURCE_REMOTE"
