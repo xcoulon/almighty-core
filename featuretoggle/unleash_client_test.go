@@ -1,10 +1,12 @@
-package feature_toggle_test
+package featuretoggle_test
 
 import (
-	"context"
+	"fmt"
 	"testing"
 
 	unleash "github.com/Unleash/unleash-client-go"
+	unleashcontext "github.com/Unleash/unleash-client-go/context"
+	"github.com/fabric8-services/fabric8-wit/featuretoggle"
 	"github.com/fabric8-services/fabric8-wit/resource"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,19 +18,23 @@ func TestGetEnabledFeatures(t *testing.T) {
 	t.Run("feature enabled for beta user", func(t *testing.T) {
 		// given
 		client, err := unleash.NewClient(
-			unleash.WithAppName("fabric8"),
+			unleash.WithAppName("Fabric8"),
 			unleash.WithUrl("http://localhost:4242/api/"),
-			unleash.WithStrategies(&RolloutByGroupIDStrategy{}),
+			unleash.WithStrategies(&featuretoggle.RolloutByGroupIDStrategy{}),
 		)
+		defer client.Close()
+		// wait until client did perform a data sync
+		<-client.Ready()
 		require.Nil(t, err)
 		// when
-		ctx := &context.Context{
+		ctx := &unleashcontext.Context{
 			Properties: map[string]string{
 				"groupID": "BETA",
 			},
 		}
 		features := client.GetEnabledFeatures(ctx)
 		// then
+		fmt.Printf("Enabled features: %v\n", features)
 		assert.NotEmpty(t, features)
 	})
 

@@ -100,6 +100,7 @@ const (
 	varLogJSON                  = "log.json"
 	varTenantServiceURL         = "tenant.serviceurl"
 	varNotificationServiceURL   = "notification.serviceurl"
+	varFeatureToggleServiceURL  = "featuretoggle.serviceurl"
 )
 
 // ConfigurationData encapsulates the Viper configuration object which stores the configuration data in-memory.
@@ -772,6 +773,11 @@ func (c *ConfigurationData) GetTenantServiceURL() string {
 // GetNotificationServiceURL returns the URL for the Notification service used for event notification
 func (c *ConfigurationData) GetNotificationServiceURL() string {
 	return c.v.GetString(varNotificationServiceURL)
+}
+
+// GetFeatureToggleServiceURL returns the URL for the feature toggle service used enabling/disabling pre-prod features
+func (c *ConfigurationData) GetFeatureToggleServiceURL() string {
+	return c.v.GetString(varFeatureToggleServiceURL)
 }
 
 const (

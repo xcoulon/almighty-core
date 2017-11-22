@@ -120,3 +120,6 @@ import:
 - package: github.com/xeipuuv/gojsonpointer
 - package: github.com/prometheus/client_golang
 - package: github.com/Unleash/unleash-client-go
+  version: 377eea70f16806a6f68414ceed39b1f750eafe1f
+  repo: https://github.com/xcoulon/unleash-client-go
+  vcs: git
